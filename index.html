@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>テキーラから逃げろ！</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -28,7 +31,7 @@
       <div class="hud-grid">
         <div class="hud-cell">
           <div class="hud-row">
-            <span class="hud-label">酔い</span>
+            <span class="hud-label">🍸酔い</span>
             <div class="gauge"><div id="drunk-fill" class="gauge-fill drunk"></div></div>
             <span id="drunk-value" class="gauge-value">0</span>
             <span id="drunk-delta" class="gauge-delta"></span>
@@ -45,7 +48,7 @@
         </div>
         <div class="hud-cell">
           <div class="hud-row">
-            <span class="hud-label">疑惑</span>
+            <span class="hud-label">👀疑惑</span>
             <div class="gauge"><div id="suspicion-fill" class="gauge-fill suspicion"></div></div>
             <span id="suspicion-value" class="gauge-value">20</span>
             <span id="suspicion-delta" class="gauge-delta"></span>
@@ -53,7 +56,7 @@
         </div>
         <div class="hud-cell">
           <div class="hud-row">
-            <span class="hud-label">空気</span>
+            <span class="hud-label">✨空気</span>
             <div class="gauge"><div id="tension-fill" class="gauge-fill tension"></div></div>
             <span id="tension-value" class="gauge-value">60</span>
             <span id="tension-delta" class="gauge-delta"></span>
@@ -81,6 +84,13 @@
         <img class="char-art" src="assets/milk.png" alt="" aria-hidden="true"
              onload="this.classList.add('loaded')"
              onerror="this.style.display='none'">
+        <div class="char-face" aria-hidden="true">
+          <div class="char-eye left"></div>
+          <div class="char-eye right"></div>
+          <div class="char-cheek left"></div>
+          <div class="char-cheek right"></div>
+          <div class="char-mouth"></div>
+        </div>
         <span class="char-base" aria-hidden="true">🥃</span>
         <span class="char-eyes" aria-hidden="true">👁👁</span>
         <span class="expression-icon" aria-hidden="true">✨</span>

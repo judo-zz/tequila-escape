@@ -77,6 +77,7 @@ const commandsMain = [
   { id:'ikki',   icon:'🍻', label:'勢いで乾杯', desc:'ノリで押し切る。リスクは高い', effect:'酔い↑↑ / 疑惑↓↓', ikki:true },
   { id:'fake',   icon:'🎭', label:'フェイク',   desc:'通れば強い。バレたら判定へ',   effect:'ノリ↑ / 疑惑↑' },
   { id:'divert', icon:'💬', label:'話を逸らす', desc:'会話で空気を変える',           effect:'疑惑↓ / 連発注意' },
+  { id:'other',  icon:'⋯',  label:'その他',     desc:'水・チェキ・トイレ',           effect:'' },
 ];
 const commandsOther = [
   { id:'water',  icon:'💧', label:'水を飲む',      desc:'酔いを抑えるが怪しまれる',   effect:'酔い↓ / 疑惑↑' },
@@ -123,7 +124,20 @@ function setState(next) {
 function rollScene() {
   state.scenePrev2    = state.previousScene;
   state.previousScene = state.scene ? state.scene.id : null;
+
+  // Turn pulse
+  const appEl = $('app');
+  appEl.classList.remove('turn-pulse');
+  void appEl.offsetWidth;
+  appEl.classList.add('turn-pulse');
+  setTimeout(() => appEl.classList.remove('turn-pulse'), 200);
+
   state.scene         = pickScene();
+
+  // Background stage progression
+  const bgStages = ['#FFE9F1','#FFDDE7','#FFD0DC','#FFC3D2','#FFB8CA','#FFADC2'];
+  document.documentElement.style.setProperty('--bg-now', bgStages[Math.min(state.turn - 1, 5)]);
+
   state.lastAction    = null;
   state.lastDivertPair = null;
   state.commandMode   = 'main';
@@ -318,15 +332,15 @@ function setExpr(expr) {
 
 function triggerActionFeedback(id) {
   switch (id) {
-    case 'toast':      triggerSfx('カンッ！',    'var(--gold)'); setExpr('smile');  tryVibrate(20);         playSfx('toast');      break;
-    case 'ikki':       triggerSfx('グイッ！',    'var(--red)');  setExpr('drunk');  tryVibrate([30,40,30]); playSfx('ikki');       break;
-    case 'fakeOk':     triggerSfx('セーフ……？', 'var(--mint)'); setExpr('normal'); tryVibrate(15);         playSfx('fakeOk');     break;
-    case 'fakeFail':   triggerCutin();                           setExpr('doubt');  tryVibrate([50,60,50]); playSfx('fakeFail');   break;
-    case 'divertOk':   triggerSfx('話題転換！',  'var(--mint)'); setExpr('smile');  tryVibrate(20);         playSfx('divertOk');   break;
-    case 'divertFail': triggerSfx('雑すぎる！',  'var(--red)');  setExpr('doubt');  tryVibrate(40);         playSfx('divertFail'); break;
-    case 'water':      triggerSfx('命の水',       'var(--blue)'); setExpr('normal'); tryVibrate(10);         playSfx('water');      break;
-    case 'cheki':      triggerSfx('パシャ！',     'var(--gold)'); setExpr('smile');  tryVibrate(20);         playSfx('cheki');      break;
-    case 'toilet':     triggerSfx('退避！',       'var(--blue)'); setExpr('normal'); tryVibrate(15);         playSfx('toilet');     break;
+    case 'toast':      triggerSfx('カンッ！',    'var(--yellow)'); setExpr('smile');  tryVibrate(20);         playSfx('toast');      break;
+    case 'ikki':       triggerSfx('グイッ！',    'var(--pink)');  setExpr('drunk');  tryVibrate([30,40,30]); playSfx('ikki');       break;
+    case 'fakeOk':     triggerSfx('セーフ……？', 'var(--blue)');  setExpr('normal'); tryVibrate(15);         playSfx('fakeOk');     break;
+    case 'fakeFail':   triggerCutin();                            setExpr('doubt');  tryVibrate([50,60,50]); playSfx('fakeFail');   break;
+    case 'divertOk':   triggerSfx('話題転換！',  'var(--blue)');  setExpr('smile');  tryVibrate(20);         playSfx('divertOk');   break;
+    case 'divertFail': triggerSfx('雑すぎる！',  'var(--pink)');  setExpr('doubt');  tryVibrate(40);         playSfx('divertFail'); break;
+    case 'water':      triggerSfx('命の水',       'var(--blue)');  setExpr('normal'); tryVibrate(10);         playSfx('water');      break;
+    case 'cheki':      triggerSfx('パシャ！',     'var(--yellow)');setExpr('smile');  tryVibrate(20);         playSfx('cheki');      break;
+    case 'toilet':     triggerSfx('退避！',       'var(--blue)');  setExpr('normal'); tryVibrate(15);         playSfx('toilet');     break;
   }
 }
 
@@ -346,17 +360,17 @@ function resolveJudge(judgeId) {
       const rate = clamp(60 - state.suspicion * 0.3 + state.tension * 0.2, 5, 95);
       if (Math.random() * 100 < rate) {
         state.suspicion -= 15; state.tension -= 3; state.affinity += 2;
-        state.lastAction = 'judge_laugh_ok'; triggerSfx('あはは…！', 'var(--mint)'); setExpr('smile');
+        state.lastAction = 'judge_laugh_ok'; triggerSfx('あはは…！', 'var(--blue)'); setExpr('smile');
       } else {
         state.suspicion += 25; state.tension -= 15; state.affinity -= 3;
-        state.lastAction = 'judge_laugh_ng'; triggerSfx('ダメだった', 'var(--red)'); setExpr('doubt');
+        state.lastAction = 'judge_laugh_ng'; triggerSfx('ダメだった', 'var(--pink)'); setExpr('doubt');
       }
       tryVibrate(20); break;
     }
     case 'j_drink':
       state.playerDrunk += 12; state.castDrunk += 6; state.suspicion -= 22; state.tension += 5;
       state.affinity += 5; state.lastAction = 'judge_drink';
-      triggerSfx('…わかったよ', 'var(--gold)'); setExpr('drunk'); tryVibrate(30); break;
+      triggerSfx('…わかったよ', 'var(--yellow)'); setExpr('drunk'); tryVibrate(30); break;
     default: // j_silent + timeout
       state.suspicion += 10; state.tension -= 5; state.affinity -= 2;
       state.lastAction = 'j_silent'; setExpr('doubt'); break;
@@ -448,6 +462,8 @@ function render() {
   $('suspicion-fill').classList.toggle('danger', state.suspicion   >= 80);
   $('tension-fill').classList.toggle('crit',     state.tension     <= 25);
   $('castDrunk-fill').classList.toggle('near-win', state.castDrunk >= 85);
+  document.querySelector('.gauge:has(#drunk-fill)')?.classList.toggle('danger-shake', state.playerDrunk >= 80);
+  document.querySelector('.gauge:has(#suspicion-fill)')?.classList.toggle('danger-shake', state.suspicion >= 80);
 
   const castStatus = $('cast-status');
   if (state.castDrunk >= 85) {
@@ -724,7 +740,7 @@ function dismissTutorial() {
 
 // ── 初期化 ──
 document.addEventListener('DOMContentLoaded', () => {
-  $('cast-label').textContent = CAST_NAME;
+  $('cast-label').textContent = '💗' + CAST_NAME;
   $('start-btn').addEventListener('click',   startGame);
   $('retry-btn').addEventListener('click',   startGame);
   $('copy-btn').addEventListener('click',    copyResult);
