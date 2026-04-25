@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>テキーラから逃げろ！</title>
+  <style>
+    :root {
+      --bg:       #120B16;
+      --panel:    #21131F;
+      --card:     #2A1A24;
+      --text:     #F8EDEB;
+      --text-dim: rgba(248,237,235,.55);
+      --gold:     #F6C65B;
+      --gold-dim: rgba(246,198,91,.18);
+      --red:      #E84A5F;
+      --red-dim:  rgba(232,74,95,.2);
+      --mint:     #7DFFC4;
+      --mint-dim: rgba(125,255,196,.18);
+      --blue:     #6C8CFF;
+      --blue-dim: rgba(108,140,255,.2);
+      --border:   rgba(248,237,235,.08);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height:100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Hiragino Kaku Gothic ProN','Noto Sans JP',system-ui,sans-serif;
+      display: flex;
+      justify-content: center;
+      overflow: hidden;
+      -webkit-text-size-adjust: 100%;
+    }
+    #app {
+      width: 100%;
+      max-width: 480px;
+      height: 100svh;
+      position: relative;
+      background:
+        linear-gradient(180deg, rgba(18,11,22,.82) 0%, rgba(18,11,22,.72) 60%, rgba(18,11,22,.88) 100%),
+        url('assets/bg.jpg') center/cover no-repeat;
+      background-color: var(--bg);
+      display: flex;
+      flex-direction: column;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .screen { width:100%; height:100%; display:none; flex-direction:column; }
+    .screen.active { display:flex; }
+
+    /* ─── TITLE ─── */
+    #title-screen {
+      align-items: center;
+      justify-content: center;
+      padding: 28px 24px 64px;
+      text-align: center;
+      gap: 16px;
+      position: relative;
+    }
+    #title-screen h1 {
+      font-size: clamp(2rem,9vw,2.6rem);
+      font-weight: 900;
+      letter-spacing: .04em;
+      line-height: 1.2;
+      color: var(--gold);
+      text-shadow: 0 0 24px rgba(246,198,91,.4);
+    }
+    .title-sub {
+      font-size: clamp(.88rem,3.6vw,1rem);
+      color: var(--text-dim);
+      letter-spacing: .06em;
+    }
+    .title-desc {
+      font-size: .9rem;
+      color: var(--text-dim);
+      line-height: 1.9;
+      white-space: pre-line;
+      background: rgba(33,19,31,.7);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      max-width: 340px;
+    }
+    .title-disclaimer {
+      position: absolute;
+      bottom: 14px;
+      left: 12px; right: 12px;
+      font-size: .65rem;
+      color: rgba(248,237,235,.3);
+    }
+    .primary-btn {
+      padding: 14px 40px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      background: var(--gold);
+      color: #1a0a2e;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      letter-spacing: .06em;
+      box-shadow: 0 0 24px rgba(246,198,91,.35);
+    }
+    .primary-btn:active { transform: scale(.96); }
+
+    /* ─── HUD ─── */
+    #game-screen { padding: 10px 10px 8px; gap: 7px; }
+    .hud {
+      background: rgba(33,19,31,.9);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+    }
+    .hud-turn {
+      font-size: .75rem;
+      color: var(--text-dim);
+      letter-spacing: .12em;
+      margin-bottom: 6px;
+    }
+    .hud-turn strong { color: var(--gold); font-variant-numeric: tabular-nums; }
+    .hud-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 10px;
+    }
+    .hud-cell { min-width: 0; }
+    .hud-row {
+      display: flex;
+      align-items: center;
+    }
+    .hud-label {
+      font-size: .72rem;
+      color: var(--text-dim);
+      min-width: 32px;
+      flex-shrink: 0;
+      letter-spacing: .04em;
+    }
+    .gauge {
+      flex: 1;
+      height: 6px;
+      background: rgba(0,0,0,.5);
+      border-radius: 3px;
+      margin: 0 6px;
+      overflow: hidden;
+    }
+    .gauge-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 3px;
+      transition: width .35s ease;
+    }
+    .gauge-fill.drunk     { background: var(--red); }
+    .gauge-fill.suspicion { background: var(--gold); }
+    .gauge-fill.tension   { background: var(--mint); }
+    .gauge-fill.cast      { background: var(--gold); }
+    .gauge-value {
+      min-width: 24px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-size: .72rem;
+      color: var(--text);
+    }
+    .gauge-delta {
+      min-width: 28px;
+      text-align: right;
+      font-size: .68rem;
+      font-weight: bold;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .gauge-delta.pos { color: var(--red);  animation: deltaFloat .9s ease-out forwards; }
+    .gauge-delta.neg { color: var(--mint); animation: deltaFloat .9s ease-out forwards; }
+    .gauge-delta.pos.cast-delta { color: var(--gold); }
+    @keyframes deltaFloat {
+      0%   { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+    .cast-status {
+      font-size: .6rem;
+      color: var(--gold);
+      text-align: right;
+      min-height: 10px;
+      letter-spacing: .04em;
+      opacity: .85;
+    }
+    /* ゲージ危険域・勝利接近パルス */
+    .gauge-fill.drunk.danger { animation: gaugePulse .8s ease-in-out infinite; }
+    .gauge-fill.suspicion.danger { animation: gaugePulse .8s ease-in-out infinite; }
+    .gauge-fill.tension.crit { animation: gaugePulse .8s ease-in-out infinite; }
+    .gauge-fill.cast.near-win { animation: gaugePulse .7s ease-in-out infinite; }
+    @keyframes gaugePulse { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.6)} }
+
+    /* ─── SITUATION TAG ─── */
+    .situation-tag {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      align-self: flex-start;
+    }
+    .sit-badge {
+      font-size: .62rem;
+      font-weight: bold;
+      color: var(--gold);
+      background: rgba(246,198,91,.12);
+      border: 1px solid rgba(246,198,91,.3);
+      border-radius: 999px;
+      padding: 2px 8px;
+      letter-spacing: .06em;
+    }
+    .sit-mood {
+      font-size: .62rem;
+      color: var(--text-dim);
+      font-style: italic;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
+
+    /* ─── STAGE ─── */
+    .stage {
+      flex: 1;
+      position: relative;
+      background: rgba(33,19,31,.5);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 10px 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .speech {
+      background: var(--text);
+      color: var(--bg);
+      border-radius: 12px;
+      padding: 9px 14px;
+      max-width: 92%;
+      font-size: .88rem;
+      line-height: 1.5;
+      position: relative;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      flex-shrink: 0;
+      z-index: 2;
+    }
+    .speech::after {
+      content: '';
+      position: absolute;
+      bottom: -7px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-top: 7px solid var(--text);
+    }
+    .character-name {
+      font-size: .75rem;
+      font-weight: bold;
+      color: var(--gold);
+      letter-spacing: .08em;
+      flex-shrink: 0;
+      z-index: 2;
+    }
+    .character {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      min-height: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .char-art {
+      align-self: stretch;
+      width: auto;
+      max-width: 100%;
+      object-fit: contain;
+      object-position: center bottom;
+      opacity: 0;
+      transition: opacity .4s;
+      display: block;
+      min-width: 0;
+    }
+    .char-art.loaded { opacity: 1; }
+    .char-art.loaded ~ .char-base { display: none; }
+    .char-base {
+      position: absolute;
+      font-size: 64px;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .char-eyes {
+      position: absolute;
+      top: 22%;
+      left: 50%;
+      transform: translate(-50%,-50%);
+      font-size: 24px;
+      letter-spacing: 8px;
+      opacity: 0;
+      pointer-events: none;
+      filter: drop-shadow(0 0 6px #ff0040);
+      transition: opacity .35s;
+      z-index: 3;
+    }
+    .sparkles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity .4s;
+    }
+    #app.hype .sparkles { opacity: 1; }
+    .sparkle {
+      position: absolute;
+      font-size: 14px;
+      animation: sparkleFloat 2.4s ease-in-out infinite;
+    }
+    .sparkle:nth-child(1){top:12%;left:18%;animation-delay:0s}
+    .sparkle:nth-child(2){top:22%;right:14%;animation-delay:.4s}
+    .sparkle:nth-child(3){top:45%;left:8%;animation-delay:.8s}
+    .sparkle:nth-child(4){top:35%;right:22%;animation-delay:1.2s;font-size:18px}
+    .sparkle:nth-child(5){top:60%;left:28%;animation-delay:1.6s}
+    .sparkle:nth-child(6){top:18%;left:48%;animation-delay:2.0s;font-size:16px}
+    @keyframes sparkleFloat {
+      0%,100%{transform:translateY(0) scale(.7);opacity:0}
+      30%{opacity:1}
+      50%{transform:translateY(-12px) scale(1.1);opacity:1}
+      70%{opacity:.6}
+    }
+
+    /* ─── ACTION RESULT ─── */
+    .action-result {
+      background: rgba(33,19,31,.85);
+      border-left: 2px solid var(--gold);
+      border-radius: 0 8px 8px 0;
+      padding: 7px 12px;
+      font-size: .78rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+      min-height: 36px;
+      opacity: 0;
+      transition: opacity .2s;
+      align-self: stretch;
+    }
+    .action-result.show { opacity: 1; }
+
+    /* ─── COMMAND CARDS ─── */
+    .commands {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+    }
+    .cmd-card {
+      background: var(--card);
+      border: 1px solid rgba(246,198,91,.18);
+      border-radius: 12px;
+      padding: 9px 10px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      cursor: pointer;
+      text-align: left;
+      color: var(--text);
+      min-height: 84px;
+      transition: transform .12s ease, box-shadow .12s ease, background .12s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cmd-card:active {
+      transform: scale(.93) translateY(2px);
+      box-shadow: 0 0 0 1px rgba(246,198,91,.35), inset 0 4px 10px rgba(0,0,0,.55);
+      background: rgba(246,198,91,.07);
+    }
+    .cmd-card:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+    .cmd-card.back { border-color: rgba(108,140,255,.3); }
+    .cmd-card.back .cmd-name { color: var(--blue); }
+    .cmd-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cmd-icon { font-size: 1rem; line-height: 1; }
+    .cmd-name { font-size: .9rem; font-weight: 700; color: var(--gold); line-height: 1.1; }
+    .cmd-desc { font-size: .68rem; color: var(--text-dim); line-height: 1.3; }
+    .cmd-effect { font-size: .64rem; color: rgba(125,255,196,.7); margin-top: auto; letter-spacing: .02em; }
+    .cmd-card.back .cmd-effect { color: rgba(108,140,255,.6); }
+
+    /* ─── RESULT SCREEN ─── */
+    #result-screen {
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px;
+      gap: 16px;
+      text-align: center;
+    }
+    .result-frame {
+      width: 100%;
+      max-width: 380px;
+      padding: 22px 18px;
+      background: linear-gradient(180deg, rgba(33,19,31,.9), rgba(18,11,22,.95));
+      border-radius: 18px;
+      position: relative;
+      box-shadow: 0 0 0 1px rgba(246,198,91,.25), 0 0 28px rgba(246,198,91,.15);
+    }
+    .result-verdict {
+      font-size: .8rem;
+      letter-spacing: .25em;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+    }
+    .result-verdict.win  { color: var(--gold); text-shadow: 0 0 8px rgba(246,198,91,.5); }
+    .result-verdict.lose { color: var(--red);  text-shadow: 0 0 8px rgba(232,74,95,.5); }
+    .result-title-big {
+      font-size: clamp(1.4rem,7vw,1.9rem);
+      font-weight: 900;
+      color: var(--gold);
+      line-height: 1.25;
+      margin-bottom: 8px;
+      word-break: keep-all;
+    }
+    .result-oneliner {
+      font-size: .82rem;
+      color: var(--text-dim);
+      font-style: italic;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+    .result-score-label {
+      font-size: .65rem;
+      color: var(--text-dim);
+      letter-spacing: .3em;
+      margin-bottom: 2px;
+    }
+    .result-score-big {
+      font-size: clamp(2.2rem,11vw,2.8rem);
+      font-weight: 900;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      margin-bottom: 14px;
+    }
+    .result-stats-card {
+      background: rgba(0,0,0,.3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: .84rem;
+      line-height: 1.8;
+      text-align: left;
+    }
+    .stats-row { display:flex; justify-content:space-between; align-items:center; }
+    .stats-key { color: var(--text-dim); }
+    .stats-val { font-weight:bold; font-variant-numeric:tabular-nums; }
+    .result-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 320px;
+    }
+    .secondary-btn {
+      padding: 12px 24px;
+      font-size: .95rem;
+      background: rgba(248,237,235,.08);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .secondary-btn:active { transform: scale(.97); }
+
+    /* ─── OVERLAYS ─── */
+    /* カットイン（飲んだフリ失敗） */
+    #cutin {
+      position: absolute;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0);
+      pointer-events: none;
+      opacity: 0;
+    }
+    #cutin.show { animation: cutinBg .9s ease-out; }
+    @keyframes cutinBg {
+      0%  { opacity:0; background:rgba(0,0,0,0); }
+      15% { opacity:1; background:rgba(10,0,5,.8); }
+      85% { opacity:1; background:rgba(10,0,5,.65); }
+      100%{ opacity:0; background:rgba(0,0,0,0); }
+    }
+    .cutin-text {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 0 16px var(--red), 0 0 32px var(--red);
+      background: rgba(18,5,10,.95);
+      border: 2px solid var(--red);
+      border-radius: 8px;
+      padding: 16px 24px;
+      transform: rotate(-4deg) scale(0);
+      letter-spacing: .04em;
+    }
+    #cutin.show .cutin-text { animation: cutinText .9s cubic-bezier(.1,1.4,.2,1); }
+    @keyframes cutinText {
+      0%  { transform:rotate(-4deg) scale(0); opacity:0; }
+      18% { transform:rotate(-4deg) scale(1.22); opacity:1; }
+      78% { transform:rotate(-4deg) scale(1.05); opacity:1; }
+      100%{ transform:rotate(-4deg) scale(.88); opacity:0; }
+    }
+
+    /* 乾杯エフェクト */
+    #drink-effect {
+      position: absolute;
+      inset: 0;
+      z-index: 90;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+    }
+    #drink-effect.show { animation: drinkFade .65s ease-out; }
+    @keyframes drinkFade {
+      0%  { opacity:0; }
+      20% { opacity:1; }
+      80% { opacity:1; }
+      100%{ opacity:0; }
+    }
+    .drink-effect-text {
+      font-size: 2.6rem;
+      font-weight: 900;
+      color: var(--gold);
+      text-shadow: 0 0 24px rgba(246,198,91,.8), 0 0 48px rgba(246,198,91,.4);
+      letter-spacing: .08em;
+      transform: scale(0);
+    }
+    #drink-effect.show .drink-effect-text { animation: drinkText .65s cubic-bezier(.2,1.5,.3,1); }
+    @keyframes drinkText {
+      0%  { transform:scale(0); }
+      35% { transform:scale(1.25); }
+      100%{ transform:scale(.9); }
+    }
+
+    /* セーフエフェクト */
+    #safe-effect {
+      position: absolute;
+      inset: 0;
+      z-index: 90;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+    }
+    #safe-effect.show { animation: drinkFade .7s ease-out; }
+    .safe-effect-text {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: var(--mint);
+      text-shadow: 0 0 20px rgba(125,255,196,.7);
+      letter-spacing: .06em;
+      transform: scale(0);
+    }
+    #safe-effect.show .safe-effect-text { animation: drinkText .7s cubic-bezier(.2,1.5,.3,1); }
+
+    /* キャスト前に出る */
+    .character.forward { animation: charForward .5s ease-out; }
+    @keyframes charForward {
+      0%  { transform:translateY(0); }
+      40% { transform:translateY(-10px) scale(1.04); }
+      100%{ transform:translateY(0); }
+    }
+
+    /* ─── AMBIENT EFFECTS ─── */
+    @keyframes drunkShake {
+      0%,100%{transform:translate(0,0)}
+      20%{transform:translate(-1.5px,1px)}
+      40%{transform:translate(1.5px,-1px)}
+      60%{transform:translate(-1px,1.5px)}
+      80%{transform:translate(1px,-1.5px)}
+    }
+    #app.drunk-high { animation: drunkShake .28s infinite; }
+    #app.drunk-high .stage { filter: blur(.5px); }
+    #app.drunk-high .gauge-fill.drunk { animation: gaugePulse .7s ease-in-out infinite !important; }
+
+    #app.creepy {
+      background:
+        linear-gradient(180deg, rgba(28,0,14,.92) 0%, rgba(10,0,8,.96) 100%),
+        url('assets/bg.jpg') center/cover no-repeat;
+      background-color: #0a0008;
+    }
+    #app.creepy .stage { background: rgba(40,0,20,.6); border-color: rgba(232,74,95,.3); }
+    #app.creepy .speech { background: #ede0e4; color: #2a000a; }
+    #app.creepy .char-eyes { opacity:1; animation: creepyPulse 1.4s ease-in-out infinite; }
+    #app.creepy .gauge-fill.suspicion { animation: gaugePulse .7s ease-in-out infinite !important; }
+    @keyframes creepyPulse {
+      0%,100%{transform:translate(-50%,-50%) scale(1)}
+      50%{transform:translate(-50%,-50%) scale(1.2); filter:drop-shadow(0 0 12px #ff003d)}
+    }
+
+    #app.hype .stage { border-color: rgba(246,198,91,.3); box-shadow: inset 0 0 20px rgba(246,198,91,.08); }
+    #app.hype .char-art { filter: drop-shadow(0 0 18px rgba(246,198,91,.5)); }
+    #app.hype .gauge-fill.tension { animation: gaugePulse .7s ease-in-out infinite !important; }
+
+    #app.cold { filter: saturate(.4) brightness(.65); }
+    #app.cold .stage { border-color: rgba(108,140,255,.2); }
+    #app.cold .speech { background: #cfd4e2; color: #1a1a2a; }
+
+    /* ─── TOAST ─── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.85);
+      color: var(--text);
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: .82rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+      white-space: nowrap;
+    }
+    .toast.show { opacity:1; }
+
+    @media (prefers-reduced-motion: reduce) {
+      #app.drunk-high { animation:none; }
+      .sparkle,.char-eyes,.gauge-fill { animation:none !important; }
+      #cutin.show, #cutin.show .cutin-text,
+      #drink-effect.show, #drink-effect.show .drink-effect-text,
+      #safe-effect.show, #safe-effect.show .safe-effect-text,
+      .character.forward { animation-duration:.15s; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ─── TITLE ─── -->
+  <div id="title-screen" class="screen active">
+    <h1>テキーラから逃げろ！</h1>
+    <div class="title-sub">飲むな。バレるな。空気だけは守れ。</div>
+    <div class="title-desc">コンカフェで始まった突然の乾杯タイム。
+飲めば酔う。逃げれば疑われる。黙れば空気が死ぬ。
+10ターン、生き残れ。</div>
+    <button id="start-btn" class="primary-btn">乾杯する</button>
+    <div class="title-disclaimer">※このゲームはフィクションです。飲酒表現はコミカルな演出です。</div>
+  </div>
+
+  <!-- ─── GAME ─── -->
+  <div id="game-screen" class="screen">
+    <div class="hud">
+      <div class="hud-turn">TURN <strong id="turn-display">1 / 10</strong></div>
+      <div class="hud-grid">
+        <div class="hud-cell">
+          <div class="hud-row">
+            <span class="hud-label">酔い</span>
+            <div class="gauge"><div id="drunk-fill" class="gauge-fill drunk"></div></div>
+            <span id="drunk-value" class="gauge-value">0</span>
+            <span id="drunk-delta" class="gauge-delta"></span>
+          </div>
+        </div>
+        <div class="hud-cell">
+          <div class="hud-row">
+            <span id="cast-label" class="hud-label"></span>
+            <div class="gauge"><div id="castDrunk-fill" class="gauge-fill cast"></div></div>
+            <span id="castDrunk-value" class="gauge-value">0</span>
+            <span id="castDrunk-delta" class="gauge-delta"></span>
+          </div>
+          <div id="cast-status" class="cast-status"></div>
+        </div>
+        <div class="hud-cell">
+          <div class="hud-row">
+            <span class="hud-label">疑惑</span>
+            <div class="gauge"><div id="suspicion-fill" class="gauge-fill suspicion"></div></div>
+            <span id="suspicion-value" class="gauge-value">20</span>
+            <span id="suspicion-delta" class="gauge-delta"></span>
+          </div>
+        </div>
+        <div class="hud-cell">
+          <div class="hud-row">
+            <span class="hud-label">空気</span>
+            <div class="gauge"><div id="tension-fill" class="gauge-fill tension"></div></div>
+            <span id="tension-value" class="gauge-value">60</span>
+            <span id="tension-delta" class="gauge-delta"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="situation-tag">
+      <span id="sit-badge" class="sit-badge">通常乾杯</span>
+      <span id="sit-mood" class="sit-mood"></span>
+    </div>
+
+    <div class="stage">
+      <div id="speech" class="speech">えへへ、せーのでいこ？</div>
+      <div class="character-name">みるく</div>
+      <div class="character">
+        <img class="char-art" src="assets/milk.png" alt="" aria-hidden="true"
+             onload="this.classList.add('loaded')"
+             onerror="this.style.display='none'">
+        <span class="char-base" aria-hidden="true">🥃</span>
+        <span class="char-eyes" aria-hidden="true">👁👁</span>
+      </div>
+      <div class="sparkles" aria-hidden="true">
+        <span class="sparkle">✨</span><span class="sparkle">✨</span>
+        <span class="sparkle">⭐</span><span class="sparkle">✨</span>
+        <span class="sparkle">💖</span><span class="sparkle">✨</span>
+      </div>
+    </div>
+
+    <div id="action-result" class="action-result"></div>
+    <div id="commands" class="commands"></div>
+
+    <div id="cutin" aria-live="polite"><div class="cutin-text">今、飲んでなかったよね？</div></div>
+    <div id="drink-effect"><span class="drink-effect-text">カンッ！</span></div>
+    <div id="safe-effect"><span class="safe-effect-text">セーフ……？</span></div>
+  </div>
+
+  <!-- ─── RESULT ─── -->
+  <div id="result-screen" class="screen">
+    <div class="result-frame">
+      <div id="result-verdict" class="result-verdict">— RESULT —</div>
+      <div id="result-title" class="result-title-big"></div>
+      <div id="result-oneliner" class="result-oneliner"></div>
+      <div class="result-score-label">SCORE</div>
+      <div id="result-score" class="result-score-big">0</div>
+      <div id="result-stats" class="result-stats-card"></div>
+    </div>
+    <div class="result-actions">
+      <button id="retry-btn" class="primary-btn">もう一度乾杯する</button>
+      <button id="copy-btn" class="secondary-btn">結果をコピー</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+</div>
+
+<script>
+// ──────────────────────────────
+// キャスト設定（将来的に差し替え可能）
+// ──────────────────────────────
+const castName = 'みるく';
+
+// ──────────────────────────────
+// 状態
+// ──────────────────────────────
+const initialState = () => ({
+  turn: 1, maxTurn: 10,
+  playerDrunk: 0, castDrunk: 0,
+  suspicion: 20, tension: 60,
+  score: 0, chekiLeft: 3, toiletCount: 0,
+  lastWasToilet: false, divertStreak: 0,
+  commandMode: 'main',
+  lastAction: null,
+  lastDeltas: { drunk: 0, suspicion: 0, tension: 0, castDrunk: 0 },
+  endReason: null,
+  situation: null,
+});
+let state = initialState();
+
+// ──────────────────────────────
+// 場面（状況カード）
+// ──────────────────────────────
+const situations = [
+  { id: 'normal',      weight: 3, label: '通常乾杯',     mood: '' },
+  { id: 'watch',       weight: 2, label: '監視ターン',   mood: '「今日はちゃんと見るからね？」',    fakePenalty: 15 },
+  { id: 'hype',        weight: 1, label: '盛り上がり',   mood: '「今の流れ、めっちゃ楽しい！」',    drinkTensBonus: 5, divertFailBonus: 5 },
+  { id: 'waterAlert',  weight: 1, label: '水バレ注意',   mood: '「そのグラス、なに飲んでるの？」',  waterPenalty: 10 },
+  { id: 'chekiChance', weight: 1, label: 'チェキチャンス',mood: '「今なら盛れてるかも」',           chekiSusBonus: 5, chekiTensBonus: 5 },
+];
+function pickSituation() {
+  const total = situations.reduce((s,x) => s + x.weight, 0);
+  let r = Math.random() * total;
+  for (const s of situations) { r -= s.weight; if (r <= 0) return s; }
+  return situations[0];
+}
+
+// ──────────────────────────────
+// セリフ
+// ──────────────────────────────
+const lines = {
+  normal:     ['えへへ、せーのでいこ？','逃げないよね？','今日、飲める日って聞いたよ？','乾杯って信頼関係だからね？','グラス持った？ いくよ？','一緒に飲むと楽しいよね？','まだ始まったばっかりだよ？'],
+  suspicious: ['あれ？ 今ほんとに飲んだ？','グラス、減ってなくない？','口、ついてた？','今ちょっと避けたよね？','ねえ、目そらした？','ちゃんと見てるよ？','バレないと思ってる？'],
+  drunk:      ['顔、赤くなってきたね','大丈夫？ 目が合ってないよ？','ちょっとふわふわしてきた？','無理してない？ でも、もう一杯だけ','終電、覚えてる？'],
+  lowTension: ['あれ、急に静かじゃない？','楽しくない？','もしかして帰りたい？','ノリ悪くなってきた？','乾杯の空気、消えたね'],
+  castDrunk:  ['あれ、私の方が飲んでる？','ちょっと楽しくなってきたかも','もう一杯だけなら……たぶん','なんか今日、強いじゃん','ふふ、まだいける……かも'],
+  caught:     ['今、飲んでなかったよね？','グラス、見てたよ','それはさすがに雑','逃げ方、下手すぎ','はい、現行犯です'],
+};
+function pickLine() {
+  if (state.lastAction === 'fakeFail') return rand(lines.caught);
+  if (state.castDrunk >= 60) return rand(lines.castDrunk);
+  if (state.suspicion >= 70) return rand(lines.suspicious);
+  if (state.playerDrunk >= 70) return rand(lines.drunk);
+  if (state.tension <= 30) return rand(lines.lowTension);
+  return rand(lines.normal);
+}
+
+// ──────────────────────────────
+// 行動結果テキスト
+// ──────────────────────────────
+const actionTexts = {
+  drink:      ['カンッ！ 覚悟を決めて飲んだ。','乾杯。一瞬だけ場が温まった。','飲んだ。それだけは嘘じゃない。'],
+  fakeOk:     ['グラスを傾ける角度だけは完璧だった。','セーフ……たぶん。口を少し濡らす程度でいけた。','みるくの視線がグラスから離れた。'],
+  fakeFail:   ['飲んでいないことが、一瞬でバレた。','グラスを動かす手が、嘘をついた。','目が合った。その瞬間、すべてが終わった。'],
+  divertOk:   ['話題転換に成功。みるくの視線がやわらいだ。','絶妙な一言で、グラスから目を離させた。','会話で時間を稼いだ。今だけは安全だ。'],
+  divertFail: ['逆効果だった。視線がグラスに戻ってきた。','話が滑った。場の温度が下がった。','タイミングが悪すぎた。疑惑が深まった。'],
+  water:      ['こっそり水を補充した。バレていないといいが。','グラスの中身が静かに薄まった。怪しまれたかもしれない。'],
+  cheki:      ['チェキで時間を稼いだ。スコアは犠牲にした。','笑顔だけは本物だった。場を乗り切った。'],
+  toilet:     ['トイレという名の現実逃避。戻ったら何か変わっているか。','少しだけ酔いを流した。でも席を外しすぎた。'],
+};
+
+// ──────────────────────────────
+// 結果一言
+// ──────────────────────────────
+const resultMessages = {
+  survive:    ['最後まで空気を守り抜いた。','バレそうでバレない、ギリギリの夜だった。','10ターン、立ち続けた。今夜は勝ちだ。'],
+  castDrunk:  ['乾杯を制した。あなたが仕掛けた夜だった。','みるくが先に落ちた。作戦勝ちだ。'],
+  drunk:      ['飲みすぎた。終電はもうない。','足元がふらついた瞬間、すべてが終わった。'],
+  suspicion:  ['グラスを見られた。それがすべてだった。','バレた。言い訳の余地は、なかった。'],
+  tension:    ['空気が冷えた。乾杯は終わった。','場の温度が下がり、誰も笑わなかった。'],
+};
+
+// ──────────────────────────────
+// コマンド定義
+// ──────────────────────────────
+const commandsMain = [
+  { id:'drink',  icon:'🥃', label:'本当に飲む',   desc:'信頼を守るが、酔いが進む',       effect:'酔い↑↑ / 疑惑↓' },
+  { id:'fake',   icon:'🎭', label:'飲んだフリ',   desc:'通れば強い。バレたら終わる',     effect:'キャスト酔い↑ / 疑惑↑' },
+  { id:'divert', icon:'💬', label:'話を逸らす',   desc:'会話で空気を変える',             effect:'疑惑↓ / 連発注意' },
+  { id:'other',  icon:'⋯',  label:'逃げ道を探す', desc:'水・チェキ・トイレ',             effect:'' },
+];
+const commandsOther = [
+  { id:'water',  icon:'💧', label:'水を飲む',     desc:'酔いを抑えるが怪しまれる',       effect:'酔い↓ / 疑惑↑' },
+  { id:'cheki',  icon:'📸', label:'チェキに逃げる',desc:'残り{n}回 / 空気回復',          effect:'疑惑↓ / 空気↑' },
+  { id:'toilet', icon:'🚻', label:'トイレ',       desc:'酔いを流すが、不審がられる',     effect:'酔い↓↓ / 疑惑↑↑' },
+  { id:'back',   icon:'↩',  label:'戻る',         desc:'通常コマンドへ',                 effect:'', back:true },
+];
+
+// ──────────────────────────────
+// ユーティリティ
+// ──────────────────────────────
+function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function clamp(v,lo,hi) { return Math.max(lo, Math.min(hi, v)); }
+function $(id) { return document.getElementById(id); }
+
+// ──────────────────────────────
+// コマンド処理
+// ──────────────────────────────
+function applyCommand(id) {
+  if (id === 'other') { state.commandMode = 'other'; render(); return; }
+  if (id === 'back')  { state.commandMode = 'main';  render(); return; }
+
+  const sit = state.situation || situations[0];
+  const before = { drunk: state.playerDrunk, sus: state.suspicion, ten: state.tension, cast: state.castDrunk };
+  let acted = true;
+  let toiletThisTurn = false;
+
+  switch (id) {
+    case 'drink':
+      state.playerDrunk += 22;
+      state.castDrunk   += 8;
+      state.suspicion   -= 12;
+      state.tension     += 8;
+      if (sit.id === 'hype') state.tension += (sit.drinkTensBonus || 0);
+      state.lastAction = 'drink';
+      break;
+    case 'fake': {
+      const penalty = sit.id === 'watch' ? (sit.fakePenalty || 0) : 0;
+      const rate = clamp(70 - state.suspicion * 0.45 + state.tension * 0.2 - penalty, 20, 90);
+      if (Math.random() * 100 < rate) {
+        state.castDrunk += 15; state.suspicion += 18; state.tension += 8;
+        state.lastAction = 'fakeOk';
+      } else {
+        state.playerDrunk += 5; state.suspicion += 35; state.tension -= 20;
+        state.lastAction = 'fakeFail';
+      }
+      break;
+    }
+    case 'divert': {
+      state.divertStreak += 1;
+      const pen = state.divertStreak === 2 ? 15 : state.divertStreak >= 3 ? 30 : 0;
+      const rate = clamp(55 + state.tension * 0.35 - state.suspicion * 0.25 - pen, 25, 90);
+      if (Math.random() * 100 < rate) {
+        state.suspicion -= 22; state.tension += 8;
+        state.lastAction = 'divertOk';
+      } else {
+        state.suspicion += 15;
+        state.tension -= 15;
+        if (sit.id === 'hype') state.tension += (sit.divertFailBonus || 0);
+        state.lastAction = 'divertFail';
+      }
+      break;
+    }
+    case 'water':
+      state.playerDrunk -= 20; state.suspicion += 18; state.tension -= 5;
+      if (sit.id === 'waterAlert') state.suspicion += (sit.waterPenalty || 0);
+      state.lastAction = 'water';
+      break;
+    case 'cheki':
+      if (state.chekiLeft <= 0) { showToast('チェキはもう使えない'); return; }
+      state.suspicion -= 8; state.tension += 12;
+      state.score -= 100; state.chekiLeft -= 1;
+      if (sit.id === 'chekiChance') {
+        state.suspicion -= (sit.chekiSusBonus || 0);
+        state.tension   += (sit.chekiTensBonus || 0);
+      }
+      state.lastAction = 'cheki';
+      break;
+    case 'toilet':
+      state.playerDrunk -= 30; state.suspicion += 25; state.tension -= 12;
+      state.toiletCount += 1;
+      if (state.lastWasToilet) state.suspicion += 20;
+      toiletThisTurn = true;
+      state.lastAction = 'toilet';
+      break;
+    default:
+      acted = false;
+  }
+
+  if (!acted) return;
+
+  if (id !== 'divert') state.divertStreak = 0;
+
+  state.playerDrunk = clamp(state.playerDrunk, 0, 100);
+  state.castDrunk   = clamp(state.castDrunk,   0, 100);
+  state.suspicion   = clamp(state.suspicion,    0, 100);
+  state.tension     = clamp(state.tension,      0, 100);
+  state.score       = Math.max(0, state.score);
+  state.lastWasToilet = toiletThisTurn;
+
+  state.lastDeltas = {
+    drunk:     state.playerDrunk - before.drunk,
+    suspicion: state.suspicion   - before.sus,
+    tension:   state.tension     - before.ten,
+    castDrunk: state.castDrunk   - before.cast,
+  };
+
+  // 演出
+  if (state.lastAction === 'drink')   triggerDrinkEffect();
+  if (state.lastAction === 'fakeOk')  triggerSafeEffect();
+  if (state.lastAction === 'fakeFail') triggerCutin();
+
+  // スコア加算
+  state.score += state.tension * 5 + state.castDrunk * 3 + (100 - state.suspicion) * 2;
+
+  // 終了判定
+  if (state.playerDrunk >= 100) { state.endReason = 'drunk';     return endGame(false); }
+  if (state.suspicion   >= 100) { state.endReason = 'suspicion'; return endGame(false); }
+  if (state.tension     <= 0)   { state.endReason = 'tension';   return endGame(false); }
+  if (state.castDrunk   >= 100) { state.endReason = 'castDrunk'; return endGame(true); }
+  if (state.turn >= state.maxTurn) { state.endReason = 'survive'; return endGame(true); }
+
+  state.turn += 1;
+  state.situation = pickSituation();
+  state.commandMode = 'main';
+  render();
+}
+
+function endGame(isWin) {
+  state.score += isWin ? (state.endReason === 'castDrunk' ? 2000 : 1000) : 0;
+  state.score = Math.max(0, state.score);
+  showResult(isWin);
+}
+
+// ──────────────────────────────
+// 称号
+// ──────────────────────────────
+function resolveTitle(isWin) {
+  if (!isWin) {
+    if (state.endReason === 'drunk')     return '無事終電消失';
+    if (state.endReason === 'suspicion') return 'グラス見られおじさん';
+    if (state.endReason === 'tension')   return '空気破壊おじさん';
+    return '記憶喪失おじさん';
+  }
+  if (state.endReason === 'castDrunk') return '乾杯の支配者';
+  if (state.chekiLeft === 0)           return 'チェキ避難民';
+  if (state.toiletCount >= 3)          return '膀胱の戦士';
+  if (state.playerDrunk >= 90)         return '限界飲酒回避おじさん';
+  if (state.suspicion >= 90)           return 'バレ寸前の魔術師';
+  if (state.tension >= 90)             return 'フロアの盛り上げ隊長';
+  if (state.playerDrunk < 30)          return '素面の策士';
+  if (state.suspicion < 30)            return '自然体の逃亡者';
+  return '夜の生還者';
+}
+
+// ──────────────────────────────
+// 描画
+// ──────────────────────────────
+function render() {
+  $('turn-display').textContent = `${state.turn} / ${state.maxTurn}`;
+
+  setGauge('drunk',     state.playerDrunk, state.lastDeltas.drunk);
+  setGauge('suspicion', state.suspicion,   state.lastDeltas.suspicion);
+  setGauge('tension',   state.tension,     state.lastDeltas.tension);
+  setGauge('castDrunk', state.castDrunk,   state.lastDeltas.castDrunk);
+
+  // 危険域・勝利接近クラス
+  $('drunk-fill').classList.toggle('danger',   state.playerDrunk >= 80);
+  $('suspicion-fill').classList.toggle('danger', state.suspicion >= 80);
+  $('tension-fill').classList.toggle('crit',   state.tension <= 25);
+  $('castDrunk-fill').classList.toggle('near-win', state.castDrunk >= 85);
+
+  // キャストステータス
+  const castStatus = $('cast-status');
+  if      (state.castDrunk >= 85) castStatus.textContent = 'あと少し';
+  else if (state.castDrunk >= 60) castStatus.textContent = 'いい感じ';
+  else                            castStatus.textContent = '';
+
+  $('speech').textContent = pickLine();
+
+  // 状況タグ
+  const sit = state.situation || situations[0];
+  $('sit-badge').textContent = sit.label;
+  $('sit-mood').textContent  = sit.mood || '';
+
+  // 行動結果テキスト
+  const ar = $('action-result');
+  const texts = actionTexts[state.lastAction];
+  if (texts) {
+    ar.textContent = rand(texts);
+    ar.classList.remove('show');
+    void ar.offsetWidth;
+    ar.classList.add('show');
+  } else {
+    ar.classList.remove('show');
+    ar.textContent = '';
+  }
+
+  // 環境演出クラス
+  const app = $('app');
+  app.classList.toggle('drunk-high', state.playerDrunk >= 80);
+  app.classList.toggle('creepy',     state.suspicion   >= 80);
+  app.classList.toggle('hype',       state.tension     >= 80);
+  app.classList.toggle('cold',       state.tension     <= 25);
+
+  // コマンドカード
+  const list = state.commandMode === 'main' ? commandsMain : commandsOther;
+  const wrap = $('commands');
+  wrap.innerHTML = '';
+  for (const c of list) {
+    const btn = document.createElement('button');
+    btn.className = 'cmd-card' + (c.back ? ' back' : '');
+
+    const top = document.createElement('div'); top.className = 'cmd-top';
+    const icon = document.createElement('span'); icon.className = 'cmd-icon'; icon.textContent = c.icon;
+    const name = document.createElement('span'); name.className = 'cmd-name'; name.textContent = c.label;
+    top.append(icon, name);
+
+    const desc = document.createElement('div'); desc.className = 'cmd-desc';
+    desc.textContent = c.desc.replace('{n}', state.chekiLeft);
+
+    const eff = document.createElement('div'); eff.className = 'cmd-effect';
+    eff.textContent = c.effect;
+
+    btn.append(top, desc, eff);
+
+    if (c.id === 'cheki' && state.chekiLeft <= 0) btn.disabled = true;
+    btn.addEventListener('click', () => applyCommand(c.id));
+    wrap.appendChild(btn);
+  }
+}
+
+function setGauge(key, val, delta) {
+  $(`${key}-fill`).style.width = val + '%';
+  $(`${key}-value`).textContent = val;
+  const d = $(`${key}-delta`);
+  if (delta) {
+    d.textContent = (delta > 0 ? '+' : '') + delta;
+    d.className = 'gauge-delta';
+    void d.offsetWidth;
+    d.classList.add(delta > 0 ? 'pos' : 'neg');
+  } else {
+    d.className = 'gauge-delta';
+    d.textContent = '';
+  }
+}
+
+// ──────────────────────────────
+// 演出
+// ──────────────────────────────
+function triggerCutin() {
+  const c = $('cutin');
+  const ch = document.querySelector('.character');
+  c.classList.remove('show'); ch.classList.remove('forward');
+  void c.offsetWidth;
+  c.classList.add('show'); ch.classList.add('forward');
+  clearTimeout(triggerCutin._tid);
+  triggerCutin._tid = setTimeout(() => { c.classList.remove('show'); ch.classList.remove('forward'); }, 900);
+}
+
+function triggerEffect(id, duration) {
+  const el = $(id);
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+  clearTimeout(el._tid);
+  el._tid = setTimeout(() => el.classList.remove('show'), duration);
+}
+function triggerDrinkEffect() { triggerEffect('drink-effect', 650); }
+function triggerSafeEffect()  { triggerEffect('safe-effect',  700); }
+
+// ──────────────────────────────
+// 画面切替
+// ──────────────────────────────
+function show(id) {
+  document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+  $(id).classList.add('active');
+  if (id !== 'game-screen') {
+    $('app').classList.remove('drunk-high','creepy','hype','cold');
+  }
+}
+
+function startGame() {
+  state = initialState();
+  state.situation = pickSituation();
+  clearTimeout(triggerCutin._tid);
+  ['cutin','drink-effect','safe-effect'].forEach(k => $(k).classList.remove('show'));
+  document.querySelector('.character')?.classList.remove('forward');
+  $('action-result').classList.remove('show');
+  $('action-result').textContent = '';
+  show('game-screen');
+  render();
+}
+
+// ──────────────────────────────
+// 結果画面
+// ──────────────────────────────
+function showResult(isWin) {
+  const title = resolveTitle(isWin);
+  const verdict = $('result-verdict');
+  verdict.textContent = isWin ? '— 生還 —' : '— 撃沈 —';
+  verdict.classList.toggle('win', isWin);
+  verdict.classList.toggle('lose', !isWin);
+  $('result-title').textContent = title;
+
+  const msgs = resultMessages[state.endReason] || resultMessages.survive;
+  $('result-oneliner').textContent = rand(msgs);
+
+  $('result-score').textContent = state.score.toLocaleString();
+
+  const stats = [
+    ['自分の酔い', state.playerDrunk + '%'],
+    ['疑惑',       state.suspicion   + '%'],
+    ['空気',       state.tension     + '%'],
+    ['キャストの酔い', state.castDrunk + '%'],
+    ['ターン',     `${state.turn} / ${state.maxTurn}`],
+  ];
+  const statsEl = $('result-stats');
+  statsEl.innerHTML = '';
+  for (const [k,v] of stats) {
+    const row = document.createElement('div'); row.className = 'stats-row';
+    const ks = document.createElement('span'); ks.className = 'stats-key'; ks.textContent = k;
+    const vs = document.createElement('span'); vs.className = 'stats-val'; vs.textContent = v;
+    row.append(ks, vs);
+    statsEl.appendChild(row);
+  }
+
+  $('copy-btn').dataset.win   = isWin ? '1' : '0';
+  $('copy-btn').dataset.title = title;
+  show('result-screen');
+}
+
+// ──────────────────────────────
+// コピー
+// ──────────────────────────────
+function copyResult() {
+  const btn = $('copy-btn');
+  if (btn.dataset.busy === '1') return;
+  const isWin  = btn.dataset.win === '1';
+  const title  = btn.dataset.title;
+  const head   = isWin ? 'テキーラから逃げろ！で生還しました🍻' : 'テキーラから逃げろ！で散りました🍻';
+  const tLine  = isWin ? `称号：${title}` : `死因：${title}`;
+  const text   = [head, tLine, `スコア：${state.score}`,
+    `酔い：${state.playerDrunk}% / 疑惑：${state.suspicion}% / 空気：${state.tension}%`,
+    '#テキーラから逃げろ'].join('\n');
+
+  const flash = (msg) => {
+    btn.dataset.busy = '1'; btn.textContent = msg;
+    clearTimeout(copyResult._tid);
+    copyResult._tid = setTimeout(() => { btn.textContent = '結果をコピー'; btn.dataset.busy = '0'; }, 2000);
+  };
+  const ok = () => flash('コピーしました！');
+  const ng = () => flash('コピーできませんでした');
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(ok, () => fallbackCopy(text, ok, ng));
+  } else {
+    fallbackCopy(text, ok, ng);
+  }
+}
+function fallbackCopy(text, ok, ng) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy') ? ok() : ng(); } catch { ng(); }
+  document.body.removeChild(ta);
+}
+
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(showToast._tid);
+  showToast._tid = setTimeout(() => t.classList.remove('show'), 1500);
+}
+
+// ──────────────────────────────
+// 初期化
+// ──────────────────────────────
+$('start-btn').addEventListener('click', startGame);
+$('retry-btn').addEventListener('click', startGame);
+$('copy-btn').addEventListener('click',  copyResult);
+$('cast-label').textContent = castName;
+</script>
+</body>
+</html>
