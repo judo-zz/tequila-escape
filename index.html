@@ -195,38 +195,38 @@
     .gauge-fill.cast.near-win   { animation: gaugePulse .7s ease-in-out infinite; }
     @keyframes gaugePulse { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.6)} }
 
-    /* ─── SITUATION TAG ─── */
-    .situation-tag {
+    /* ─── SCENE CARD ─── */
+    .scene-card {
+      background: rgba(33,19,31,.92);
+      border: 1px solid rgba(246,198,91,.28);
+      border-radius: 10px;
+      padding: 8px 11px;
       display: flex;
-      align-items: center;
-      gap: 6px;
-      align-self: flex-start;
+      align-items: flex-start;
+      gap: 10px;
+      flex-shrink: 0;
+      transition: border-color .25s, background .25s;
     }
-    .sit-badge {
-      font-size: .62rem;
-      font-weight: bold;
-      color: var(--gold);
-      background: rgba(246,198,91,.12);
-      border: 1px solid rgba(246,198,91,.3);
-      border-radius: 999px;
-      padding: 2px 8px;
-      letter-spacing: .06em;
-      transition: background .2s, border-color .2s, color .2s;
+    .scene-card.judge-scene {
+      border-color: rgba(232,74,95,.55);
+      background: rgba(45,8,16,.92);
     }
-    .sit-badge.judge-badge {
-      color: var(--red);
-      background: rgba(232,74,95,.15);
-      border-color: rgba(232,74,95,.45);
+    .scene-icon { font-size: 1.55rem; line-height: 1; flex-shrink: 0; margin-top: 1px; }
+    .scene-info { flex: 1; min-width: 0; }
+    .scene-status {
+      font-size: .83rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+      margin-bottom: 3px;
     }
-    .sit-mood {
-      font-size: .62rem;
-      color: var(--text-dim);
-      font-style: italic;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      max-width: 200px;
+    .scene-eff { font-size: .68rem; color: var(--text-dim); line-height: 1.35; }
+    .scene-rec {
+      font-size: .68rem;
+      color: var(--mint);
+      line-height: 1.35;
     }
+    .scene-rec::before { content: '→ '; }
 
     /* ─── STAGE ─── */
     .stage {
@@ -410,8 +410,8 @@
       100% { box-shadow: 0 0 0 6px rgba(246,198,91,0); }
     }
     .cmd-top { display: flex; align-items: center; gap: 6px; }
-    .cmd-icon { font-size: 1rem; line-height: 1; }
-    .cmd-name { font-size: .9rem; font-weight: 700; color: var(--gold); line-height: 1.1; }
+    .cmd-icon { font-size: 1.35rem; line-height: 1; }
+    .cmd-name { font-size: 1rem; font-weight: 700; color: var(--gold); line-height: 1.1; }
     .cmd-desc { font-size: .68rem; color: var(--text-dim); line-height: 1.3; }
     .cmd-effect { font-size: .64rem; color: rgba(125,255,196,.7); margin-top: auto; letter-spacing: .02em; }
     .cmd-card.back .cmd-effect { color: rgba(108,140,255,.6); }
@@ -585,6 +585,25 @@
       transform: scale(0);
     }
     #safe-effect.show .safe-effect-text { animation: drinkText .7s cubic-bezier(.2,1.5,.3,1); }
+    #cmd-effect {
+      position: absolute;
+      bottom: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 85;
+      pointer-events: none;
+      opacity: 0;
+    }
+    #cmd-effect.show { animation: drinkFade .7s ease-out; }
+    .cmd-effect-text {
+      font-size: 1.6rem;
+      font-weight: 900;
+      letter-spacing: .06em;
+      white-space: nowrap;
+      transform: scale(0);
+      display: block;
+    }
+    #cmd-effect.show .cmd-effect-text { animation: drinkText .7s cubic-bezier(.2,1.5,.3,1); }
     .character.forward { animation: charForward .5s ease-out; }
     @keyframes charForward {
       0%  { transform:translateY(0); }
@@ -602,7 +621,16 @@
     }
     #app.drunk-high { animation: drunkShake .28s infinite; }
     #app.drunk-high .stage { filter: blur(.5px); }
-    #app.drunk-high .gauge-fill.drunk { animation: gaugePulse .7s ease-in-out infinite !important; }
+    #app.drunk-high .gauge-fill.drunk { animation: gaugePulse .6s ease-in-out infinite !important; }
+    #app.drunk-high::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      box-shadow: inset 0 0 60px rgba(232,74,95,.32);
+      border-radius: inherit;
+    }
 
     #app.creepy {
       background:
@@ -614,7 +642,10 @@
     #app.creepy .speech { background: #ede0e4; color: #2a000a; }
     #app.creepy .speech.judge-speech { background: rgba(200,30,50,.92); color: #fff; }
     #app.creepy .char-eyes { opacity:1; animation: creepyPulse 1.4s ease-in-out infinite; }
-    #app.creepy .gauge-fill.suspicion { animation: gaugePulse .7s ease-in-out infinite !important; }
+    #app.creepy .gauge-fill.suspicion {
+      background: var(--red);
+      animation: gaugePulse .6s ease-in-out infinite !important;
+    }
     @keyframes creepyPulse {
       0%,100%{transform:translate(-50%,-50%) scale(1)}
       50%{transform:translate(-50%,-50%) scale(1.2); filter:drop-shadow(0 0 12px #ff003d)}
@@ -627,6 +658,17 @@
     #app.cold { filter: saturate(.4) brightness(.65); }
     #app.cold .stage { border-color: rgba(108,140,255,.2); }
     #app.cold .speech { background: #cfd4e2; color: #1a1a2a; }
+    #app.cold .gauge-fill.tension {
+      background: var(--blue);
+      animation: gaugePulse 1.1s ease-in-out infinite !important;
+    }
+
+    .cast-status.near {
+      font-size: .74rem;
+      font-weight: 700;
+      animation: nearPulse 1s ease-in-out infinite;
+    }
+    @keyframes nearPulse { 0%,100%{opacity:1} 50%{opacity:.35} }
 
     /* ─── TUTORIAL OVERLAY ─── */
     .tutorial-overlay {
@@ -699,9 +741,11 @@
     @media (prefers-reduced-motion: reduce) {
       #app.drunk-high { animation:none; }
       .sparkle,.char-eyes,.gauge-fill { animation:none !important; }
+      .cast-status.near { animation:none; }
       #cutin.show, #cutin.show .cutin-text,
       #drink-effect.show, #drink-effect.show .drink-effect-text,
       #safe-effect.show, #safe-effect.show .safe-effect-text,
+      #cmd-effect.show, #cmd-effect.show .cmd-effect-text,
       .character.forward { animation-duration:.15s; }
       .cmd-card.pressed { animation:none; }
     }
@@ -763,9 +807,13 @@
       </div>
     </div>
 
-    <div class="situation-tag">
-      <span id="sit-badge" class="sit-badge">通常乾杯</span>
-      <span id="sit-mood" class="sit-mood"></span>
+    <div id="scene-card" class="scene-card">
+      <div id="scene-icon" class="scene-icon">🥃</div>
+      <div class="scene-info">
+        <div id="scene-status" class="scene-status">いつもの乾杯ムード</div>
+        <div id="scene-eff" class="scene-eff">効果：補正なし</div>
+        <div id="scene-rec" class="scene-rec">状況を見て選ぼう</div>
+      </div>
     </div>
 
     <div class="stage">
@@ -791,6 +839,7 @@
     <div id="cutin" aria-live="polite"><div class="cutin-text">今、飲んでなかったよね？</div></div>
     <div id="drink-effect"><span class="drink-effect-text">カンッ！</span></div>
     <div id="safe-effect"><span class="safe-effect-text">セーフ……？</span></div>
+    <div id="cmd-effect"><span class="cmd-effect-text"></span></div>
   </div>
 
   <!-- ─── RESULT ─── -->
@@ -835,12 +884,47 @@ const TUT_KEY  = 'tequila_tutorialSeen';
 // シーン定義（situations を scenes に刷新）
 // ──────────────────────────────
 const scenes = [
-  { id:'normal',      weight:3, label:'通常乾杯',       line:'せーのでいこ？',                    hint:'' },
-  { id:'watching',    weight:2, label:'じっと見ている',  line:'今日はちゃんと見るからね？',        hint:'飲んだフリ 成功率 -15%',           fakePenalty:15 },
-  { id:'distracted',  weight:1, label:'よそ見している',  line:'あ、あっちの卓も盛り上がってる',    hint:'飲んだフリ 成功率 +15%',           fakePenalty:-15 },
-  { id:'hype',        weight:1, label:'盛り上がっている',line:'今の流れ、めっちゃ楽しい！',        hint:'飲む→空気↑↑  逸らす失敗→空気↓',  drinkTensBonus:5, divertFailTensPenalty:5 },
-  { id:'chekiChance', weight:1, label:'チェキチャンス',  line:'今なら盛れてるかも',                hint:'チェキ→疑惑↓ 空気↑ボーナス',      chekiSusBonus:5, chekiTensBonus:5 },
-  { id:'waterWatch',  weight:1, label:'グラスを見ている',line:'そのグラス、なに飲んでるの？',      hint:'水を飲む→疑惑 +10 追加',           waterPenalty:10 },
+  {
+    id:'normal', weight:3,
+    label:'通常乾杯',       line:'せーのでいこ？',                 hint:'',
+    icon:'🥃', status:'いつもの乾杯ムード',
+    effect:'補正なし', recommend:'状況を見て選ぼう',
+  },
+  {
+    id:'watching', weight:2,
+    label:'じっと見ている',  line:'今日はちゃんと見るからね？',     hint:'飲んだフリ 成功率 -15%',
+    fakePenalty:15,
+    icon:'👀', status:'みるくがじっと見ている',
+    effect:'飲んだフリ 成功率 DOWN', recommend:'本当に飲む / 話を逸らす',
+  },
+  {
+    id:'distracted', weight:1,
+    label:'よそ見している',  line:'あ、あっちの卓も盛り上がってる', hint:'飲んだフリ 成功率 +15%',
+    fakePenalty:-15,
+    icon:'📱', status:'みるくがよそ見している',
+    effect:'飲んだフリ 成功率 UP', recommend:'飲んだフリ',
+  },
+  {
+    id:'hype', weight:1,
+    label:'盛り上がっている', line:'今の流れ、めっちゃ楽しい！',    hint:'飲む→空気↑↑  逸らす失敗→空気↓',
+    drinkTensBonus:5, divertFailTensPenalty:5,
+    icon:'✨', status:'店内が盛り上がっている',
+    effect:'飲むと空気ボーナス', recommend:'本当に飲む',
+  },
+  {
+    id:'chekiChance', weight:1,
+    label:'チェキチャンス',  line:'今なら盛れてるかも',             hint:'チェキ→疑惑↓ 空気↑ボーナス',
+    chekiSusBonus:5, chekiTensBonus:5,
+    icon:'📸', status:'今ならチェキに逃げやすい',
+    effect:'チェキ効果 UP', recommend:'チェキに逃げる',
+  },
+  {
+    id:'waterWatch', weight:1,
+    label:'グラスを見ている', line:'そのグラス、なに飲んでるの？',  hint:'水を飲む→疑惑 +10 追加',
+    waterPenalty:10,
+    icon:'🥤', status:'みるくがグラスを見ている',
+    effect:'水を飲むと疑惑 大幅UP', recommend:'水は危険 / 話を逸らす',
+  },
 ];
 
 // ──────────────────────────────
@@ -901,7 +985,7 @@ const actionTexts = {
 // ──────────────────────────────
 const resultMessages = {
   survive:   ['最後まで空気を守り抜いた。','バレそうでバレない、ギリギリの夜だった。','10ターン、立ち続けた。今夜は勝ちだ。'],
-  castDrunk: ['乾杯を制した。あなたが仕掛けた夜だった。','みるくが先に落ちた。作戦勝ちだ。'],
+  castDrunk: ['乾杯の主導権を握った夜だった。','乾杯を制した。あなたが仕掛けた夜だった。','みるくが先に落ちた。作戦勝ちだ。'],
   drunk:     ['飲みすぎた。終電はもうない。','足元がふらついた瞬間、すべてが終わった。'],
   suspicion: ['グラスを見られた。それがすべてだった。','バレた。言い訳の余地は、なかった。'],
   tension:   ['空気が冷えた。乾杯は終わった。','場の温度が下がり、誰も笑わなかった。'],
@@ -1083,9 +1167,14 @@ function settleAction(id) {
   };
 
   // 演出トリガー
-  if (state.lastAction === 'drink')    triggerDrinkEffect();
-  if (state.lastAction === 'fakeOk')   triggerSafeEffect();
-  if (state.lastAction === 'fakeFail') triggerCutin();
+  if (state.lastAction === 'drink')      triggerDrinkEffect();
+  if (state.lastAction === 'fakeOk')     triggerSafeEffect();
+  if (state.lastAction === 'fakeFail')   triggerCutin();
+  if (state.lastAction === 'divertOk')   triggerCmdEffect('話題転換！', 'var(--mint)');
+  if (state.lastAction === 'divertFail') triggerCmdEffect('雑すぎる！', 'var(--red)');
+  if (state.lastAction === 'water')      triggerCmdEffect('命の水',     'var(--blue)');
+  if (state.lastAction === 'cheki')      triggerCmdEffect('パシャ！',   'var(--gold)');
+  if (state.lastAction === 'toilet')     triggerCmdEffect('退避！',     'var(--blue)');
 
   // fail-safe 即死判定（アクション直後）
   if (state.playerDrunk >= 100) { state.endReason = 'drunk';     return endGame(false); }
@@ -1233,21 +1322,25 @@ function render() {
   $('castDrunk-fill').classList.toggle('near-win', state.castDrunk >= 85);
 
   const castStatus = $('cast-status');
-  if      (state.castDrunk >= 85) castStatus.textContent = 'あと少し';
-  else if (state.castDrunk >= 60) castStatus.textContent = 'いい感じ';
-  else                            castStatus.textContent = '';
+  if      (state.castDrunk >= 85) { castStatus.textContent = 'あと少し！'; castStatus.className = 'cast-status near'; }
+  else if (state.castDrunk >= 60) { castStatus.textContent = 'いい感じ';   castStatus.className = 'cast-status'; }
+  else                            { castStatus.textContent = '';           castStatus.className = 'cast-status'; }
 
-  // シーンタグ
+  // シーンカード
   const scene = state.scene || scenes[0];
-  const badge = $('sit-badge');
+  const sceneCard = $('scene-card');
   if (state.phase === 'judge') {
-    badge.textContent = '⚠ JUDGE';
-    badge.classList.add('judge-badge');
-    $('sit-mood').textContent = '';
+    $('scene-icon').textContent = '⚠';
+    $('scene-status').textContent = 'JUDGE — 怪しまれている';
+    $('scene-eff').textContent = '今、飲んでなかったよね？';
+    $('scene-rec').textContent = '3択で切り抜けろ';
+    sceneCard.classList.add('judge-scene');
   } else {
-    badge.textContent = '今の空気：' + scene.label;
-    badge.classList.remove('judge-badge');
-    $('sit-mood').textContent = scene.hint;
+    $('scene-icon').textContent = scene.icon;
+    $('scene-status').textContent = scene.status;
+    $('scene-eff').textContent = '効果：' + scene.effect;
+    $('scene-rec').textContent = scene.recommend;
+    sceneCard.classList.remove('judge-scene');
   }
 
   // スピーチバブル
@@ -1282,6 +1375,7 @@ function render() {
   app.classList.toggle('creepy',     state.suspicion   >= 80);
   app.classList.toggle('hype',       state.tension     >= 80);
   app.classList.toggle('cold',       state.tension     <= 25);
+  app.classList.toggle('near-win',   state.castDrunk   >= 85);
 
   // コマンドカード
   let list;
@@ -1356,6 +1450,18 @@ function triggerEffect(id, duration) {
 }
 function triggerDrinkEffect() { triggerEffect('drink-effect', 650); }
 function triggerSafeEffect()  { triggerEffect('safe-effect',  700); }
+function triggerCmdEffect(text, color) {
+  const el = $('cmd-effect');
+  const span = el.querySelector('.cmd-effect-text');
+  span.textContent = text;
+  span.style.color = color;
+  span.style.textShadow = `0 0 20px ${color}`;
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+  clearTimeout(el._tid);
+  el._tid = setTimeout(() => el.classList.remove('show'), 700);
+}
 
 // ──────────────────────────────
 // 画面切替
