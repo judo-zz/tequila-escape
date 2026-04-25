@@ -134,8 +134,15 @@ function rollScene() {
 
   state.scene         = pickScene();
 
-  // Background stage progression
-  const bgStages = ['#FFE9F1','#FFDDE7','#FFD0DC','#FFC3D2','#FFB8CA','#FFADC2'];
+  // Background stage progression: ターン進行でピンクが深まる
+  const bgStages = [
+    'linear-gradient(160deg, #FFE9F1 0%, #FFD8E8 100%)',
+    'linear-gradient(160deg, #FFDDE7 0%, #FFC8DA 100%)',
+    'linear-gradient(160deg, #FFD0DC 0%, #FFB8CF 100%)',
+    'linear-gradient(160deg, #FFC3D2 0%, #FFAAC4 100%)',
+    'linear-gradient(160deg, #FFB8CA 0%, #FF9FBD 100%)',
+    'linear-gradient(160deg, #FFADC2 0%, #FF94B7 100%)',
+  ];
   document.documentElement.style.setProperty('--bg-now', bgStages[Math.min(state.turn - 1, 5)]);
 
   state.lastAction    = null;

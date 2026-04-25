@@ -1,24 +1,52 @@
 :root {
+  /* ── カラーシステム ── */
   --bg: #FFE9F1;
-  --bg-now: #FFE9F1;
   --text: #1A1A1A;
   --pink: #FF2D6F;
+  --pink-light: #FF6B9A;
+  --pink-deep: #D4005A;
   --yellow: #FFE600;
+  --yellow-warm: #FFCF00;
   --blue: #2EC4FF;
+  --blue-deep: #0099D4;
   --white: #FFFDF7;
+  --cream: #FFF8F0;
   --drunk-c: #FF6B35;
   --sus-c: #1A1A1A;
   --tens-c: #2EC4FF;
   --cast-c: #FF2D6F;
+
+  /* ── スペーシング（8pxベース） ── */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+
+  /* ── ボーダー・シャドウ ── */
   --border-size: 2.5px;
   --radius: 12px;
   --pill: 999px;
   --shadow-2: 2px 2px 0 var(--text);
   --shadow-3: 3px 3px 0 var(--text);
   --shadow-4: 4px 4px 0 var(--text);
+  --shadow-soft: 0 4px 20px rgba(255, 45, 111, 0.15);
+  --shadow-lift: 0 8px 32px rgba(255, 45, 111, 0.2);
+
+  /* ── タイポグラフィ ── */
   --judge-time: 1500ms;
   --font-jp: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif;
   --font-en: "Bagel Fat One", "Impact", sans-serif;
+
+  /* ── タイトル背景グラデーション（メッシュグラデーション） ── */
+  --title-mesh: radial-gradient(ellipse 80% 60% at 20% 30%, #FFB3CC 0%, transparent 60%),
+                radial-gradient(ellipse 60% 80% at 80% 70%, #FFE066 0%, transparent 55%),
+                radial-gradient(ellipse 70% 50% at 50% 90%, #B3E8FF 0%, transparent 50%),
+                #FFE9F1;
+
+  /* ── ゲーム画面の初期背景 ── */
+  --bg-now: linear-gradient(160deg, #FFE9F1 0%, #FFD8E8 100%);
 }
 
 * {
@@ -34,9 +62,10 @@ body {
 
 body {
   min-width: 320px;
-  background: var(--bg);
+  background: var(--title-mesh);
   color: var(--text);
   font-family: var(--font-jp);
+  font-feature-settings: "palt";
   display: flex;
   justify-content: center;
   overflow: hidden;
@@ -94,20 +123,32 @@ img {
   box-shadow: var(--shadow-3);
   font-size: 1rem;
   font-weight: 900;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.12s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
+/* プライマリ: グラデーション + グロー */
 .primary-btn {
-  background: var(--pink);
+  background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
   color: var(--white);
+  box-shadow: var(--shadow-3), 0 4px 16px rgba(255, 45, 111, 0.3);
+}
+
+.primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 4px 4px 0 var(--text), 0 8px 24px rgba(255, 45, 111, 0.4);
 }
 
 .secondary-btn {
-  background: var(--white);
+  background: rgba(255, 253, 247, 0.9);
   color: var(--text);
+}
+
+.secondary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 4px 4px 0 var(--text);
 }
 
 .primary-btn:active,
@@ -123,51 +164,62 @@ img {
   outline-offset: 3px;
 }
 
+/* ── タイトル画面：グラスモーフィズムカード ── */
 #title-screen {
   flex: 1;
   height: auto;
   min-height: calc(100% - 20px);
   justify-content: center;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   padding: 20px 18px calc(24px + env(safe-area-inset-bottom));
   margin: 10px;
-  background: var(--white);
-  border: 3px solid var(--text);
-  border-radius: 20px;
-  box-shadow: var(--shadow-4);
+  /* グラスモーフィズム背景 */
+  background: rgba(255, 253, 247, 0.78);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 24px;
+  box-shadow: 0 8px 48px rgba(255, 45, 111, 0.18), 0 2px 8px rgba(255, 45, 111, 0.08), 4px 4px 0 var(--text);
   text-align: center;
 }
 
+/* タイトルロゴ：ピンクグラデーション文字 */
 #title-screen h1 {
-  color: var(--pink);
+  background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 50%, var(--drunk-c) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   font-size: clamp(1.95rem, 10vw, 2.75rem);
   font-weight: 900;
   line-height: 1.08;
   letter-spacing: 0.02em;
+  /* 記憶に残る一点: テキストにわずかなドロップシャドウ */
+  filter: drop-shadow(0 2px 8px rgba(255, 45, 111, 0.35));
 }
 
 .title-sub {
   color: var(--text);
   font-size: 0.92rem;
   font-weight: 900;
+  letter-spacing: 0.06em;
 }
 
 .title-desc {
   width: min(100%, 340px);
   padding: 14px 16px;
-  background: var(--bg);
-  border: var(--border-size) solid var(--text);
+  background: linear-gradient(135deg, rgba(255, 233, 241, 0.8) 0%, rgba(255, 248, 224, 0.8) 100%);
+  border: var(--border-size) solid rgba(255, 45, 111, 0.25);
   border-radius: 16px;
-  box-shadow: var(--shadow-3);
+  box-shadow: var(--shadow-3), inset 0 1px 0 rgba(255, 255, 255, 0.6);
   font-size: 0.86rem;
-  line-height: 1.8;
+  line-height: 1.85;
   text-align: left;
   white-space: pre-line;
 }
 
 .title-disclaimer {
-  color: rgba(26, 26, 26, 0.72);
+  color: rgba(26, 26, 26, 0.6);
   font-size: 0.68rem;
   line-height: 1.5;
 }
@@ -182,10 +234,10 @@ img {
 }
 
 .hud {
-  background: var(--white);
+  background: rgba(255, 253, 247, 0.95);
   border: var(--border-size) solid var(--text);
   border-radius: 14px;
-  box-shadow: var(--shadow-3);
+  box-shadow: var(--shadow-3), inset 0 1px 0 rgba(255, 255, 255, 0.8);
   padding: 8px 9px;
   flex-shrink: 0;
 }
@@ -242,7 +294,7 @@ img {
 .gauge {
   position: relative;
   height: 10px;
-  background: var(--white);
+  background: rgba(255, 253, 247, 0.6);
   border: 2px solid var(--text);
   border-radius: 4px;
   overflow: hidden;
@@ -252,23 +304,24 @@ img {
   width: 0%;
   height: 100%;
   border-radius: 2px;
-  transition: width 0.35s ease, filter 0.2s ease, background-color 0.2s ease;
+  transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), filter 0.2s ease, background-color 0.2s ease;
 }
 
+/* ゲージ：グラデーションで立体感 */
 .gauge-fill.drunk {
-  background: var(--drunk-c);
+  background: linear-gradient(90deg, #FF4500, var(--drunk-c), #FF8C00);
 }
 
 .gauge-fill.suspicion {
-  background: var(--sus-c);
+  background: linear-gradient(90deg, #2d2d2d, var(--sus-c));
 }
 
 .gauge-fill.tension {
-  background: var(--tens-c);
+  background: linear-gradient(90deg, var(--blue-deep), var(--blue), #7ADBFF);
 }
 
 .gauge-fill.cast {
-  background: var(--cast-c);
+  background: linear-gradient(90deg, var(--pink-deep), var(--pink), var(--pink-light));
 }
 
 .gauge-fill.flash {
@@ -397,10 +450,10 @@ img {
 .scene-card {
   position: relative;
   min-height: 68px;
-  background: var(--yellow);
+  background: linear-gradient(135deg, var(--yellow) 0%, var(--yellow-warm) 100%);
   border: var(--border-size) solid var(--text);
   border-radius: 14px;
-  box-shadow: var(--shadow-3);
+  box-shadow: var(--shadow-3), inset 0 1px 0 rgba(255, 255, 255, 0.5);
   padding: 8px 10px 12px;
   display: grid;
   grid-template-columns: auto 1fr;
@@ -486,7 +539,7 @@ img {
   position: relative;
   flex: 1;
   min-height: 0;
-  background: var(--white);
+  background: linear-gradient(180deg, rgba(255, 253, 247, 0.97) 0%, rgba(255, 240, 248, 0.97) 100%);
   border: var(--border-size) solid var(--text);
   border-radius: 18px;
   display: flex;
@@ -495,6 +548,8 @@ img {
   gap: 6px;
   padding: 10px 10px 12px;
   overflow: hidden;
+  /* ステージ下部に薄いグロー */
+  box-shadow: var(--shadow-3), inset 0 -8px 24px rgba(255, 45, 111, 0.06);
 }
 
 .speech {
@@ -843,7 +898,7 @@ img {
 .cmd-card {
   min-height: 80px;
   padding: 10px 10px 8px;
-  background: var(--white);
+  background: rgba(255, 253, 247, 0.95);
   border: var(--border-size) solid var(--text);
   border-radius: 14px;
   box-shadow: var(--shadow-3);
@@ -853,8 +908,17 @@ img {
   gap: 4px;
   text-align: left;
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+  /* スプリング感のあるトランジション */
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.12s ease, opacity 0.12s ease, background-color 0.15s ease;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* ホバーでリフトアップ（デスクトップ） */
+@media (hover: hover) {
+  .cmd-card:not(:disabled):hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 4px 5px 0 var(--text), 0 4px 16px rgba(0, 0, 0, 0.08);
+  }
 }
 
 .cmd-card:active:not(:disabled) {
@@ -894,9 +958,10 @@ img {
 }
 
 .cmd-card.ikki {
-  background: var(--pink);
+  background: linear-gradient(135deg, var(--pink) 0%, var(--pink-deep) 100%);
   color: var(--white);
   border-color: var(--text);
+  box-shadow: var(--shadow-3), 0 2px 12px rgba(255, 45, 111, 0.25);
 }
 
 .cmd-card.ikki .cmd-name,
@@ -915,7 +980,7 @@ img {
 }
 
 .cmd-card.judge {
-  background: var(--yellow);
+  background: linear-gradient(135deg, var(--yellow) 0%, var(--yellow-warm) 100%);
   border-color: var(--text);
 }
 
@@ -998,25 +1063,28 @@ img {
 .result-frame {
   width: min(100%, 380px);
   padding: 20px 16px 16px;
-  background: var(--white);
+  background: rgba(255, 253, 247, 0.95);
   border: 3px solid var(--text);
   border-radius: 20px;
-  box-shadow: 4px 4px 0 var(--text);
+  box-shadow: 4px 4px 0 var(--text), 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .result-frame.true-end {
   border-color: var(--yellow);
-  box-shadow: 4px 4px 0 var(--yellow);
+  box-shadow: 4px 4px 0 var(--yellow), 0 8px 32px rgba(255, 230, 0, 0.25);
+  background: linear-gradient(180deg, rgba(255, 253, 247, 0.95) 0%, rgba(255, 252, 220, 0.95) 100%);
 }
 
 .result-frame.special-end {
   border-color: var(--blue);
-  box-shadow: 4px 4px 0 var(--blue);
+  box-shadow: 4px 4px 0 var(--blue), 0 8px 32px rgba(46, 196, 255, 0.2);
+  background: linear-gradient(180deg, rgba(255, 253, 247, 0.95) 0%, rgba(220, 245, 255, 0.95) 100%);
 }
 
 .result-frame.bad-end {
   border-color: var(--pink);
-  box-shadow: 4px 4px 0 var(--pink);
+  box-shadow: 4px 4px 0 var(--pink), 0 8px 32px rgba(255, 45, 111, 0.2);
+  background: linear-gradient(180deg, rgba(255, 253, 247, 0.95) 0%, rgba(255, 232, 241, 0.95) 100%);
 }
 
 .result-verdict {
@@ -1097,19 +1165,23 @@ img {
 }
 
 .result-score-big {
-  color: var(--pink);
+  background: linear-gradient(135deg, var(--pink) 0%, var(--drunk-c) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   font-family: var(--font-en);
   font-size: clamp(2.4rem, 12vw, 3rem);
   line-height: 1;
   margin-bottom: 12px;
+  filter: drop-shadow(0 2px 6px rgba(255, 45, 111, 0.3));
 }
 
 .result-stats-card,
 .result-summary {
-  background: var(--bg);
-  border: var(--border-size) solid var(--text);
+  background: linear-gradient(135deg, var(--bg) 0%, rgba(255, 248, 224, 0.8) 100%);
+  border: var(--border-size) solid rgba(26, 26, 26, 0.5);
   border-radius: 16px;
-  box-shadow: var(--shadow-3);
+  box-shadow: var(--shadow-3), inset 0 1px 0 rgba(255, 255, 255, 0.5);
   padding: 12px;
   text-align: left;
 }
@@ -1343,7 +1415,7 @@ img {
 }
 
 #app.creepy {
-  --bg-now: #FFD0DA;
+  --bg-now: linear-gradient(160deg, #FFD0DA 0%, #FFBCCC 100%);
 }
 
 #app.creepy .char-eyes {
@@ -1489,18 +1561,104 @@ img {
   }
 }
 
+/* ── タイトル画面エントランス ── */
+@keyframes titleCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+#title-screen.active {
+  animation: titleCardIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes titleH1In {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#title-screen h1 {
+  animation: titleH1In 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+
+/* ── 結果画面エントランス ── */
+@keyframes resultIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+#result-screen.active .result-frame {
+  animation: resultIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s both;
+}
+
+/* ── 吹き出しのスタイル強化 ── */
+.speech {
+  box-shadow: var(--shadow-3), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* ── character-name タグ ── */
+.character-name {
+  background: linear-gradient(135deg, var(--yellow) 0%, var(--yellow-warm) 100%);
+}
+
+/* ── トーストをより見やすく ── */
+.toast {
+  background: rgba(26, 26, 26, 0.92);
+  border-color: rgba(255, 45, 111, 0.6);
+  color: var(--white);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* ── チュートリアルカードを整理 ── */
+.tutorial-card {
+  background: rgba(255, 253, 247, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  box-shadow: var(--shadow-4), 0 8px 32px rgba(255, 45, 111, 0.15);
+}
+
+/* ── prefers-reduced-motion ── */
 @media (prefers-reduced-motion: reduce) {
   #app.turn-pulse,
   .character,
   .gauge.danger-shake,
   .cmd-card.pressed,
   #app.drunk-high .stage,
-  #app.near-win .hud-cell:has(#castDrunk-fill) {
+  #app.near-win .hud-cell:has(#castDrunk-fill),
+  #title-screen.active,
+  #title-screen h1,
+  #result-screen.active .result-frame {
     animation: none !important;
   }
 
   .gauge-delta.pos,
   .gauge-delta.neg {
     animation-duration: 0.15s;
+  }
+
+  .primary-btn:hover,
+  .secondary-btn:hover,
+  .cmd-card:not(:disabled):hover {
+    transform: none;
   }
 }
