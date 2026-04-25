@@ -542,32 +542,28 @@ img {
   background: linear-gradient(180deg, rgba(255, 253, 247, 0.97) 0%, rgba(255, 240, 248, 0.97) 100%);
   border: var(--border-size) solid var(--text);
   border-radius: 18px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 10px 12px;
   overflow: hidden;
-  /* ステージ下部に薄いグロー */
   box-shadow: var(--shadow-3), inset 0 -8px 24px rgba(255, 45, 111, 0.06);
 }
 
 .speech {
-  position: relative;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
   z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: min(92%, 320px);
-  min-height: 50px;
-  padding: 10px 14px 14px;
+  min-height: 46px;
+  padding: 8px 12px 12px;
   background: var(--white);
   border: var(--border-size) solid var(--text);
   border-radius: 14px;
   box-shadow: var(--shadow-3);
   color: var(--text);
-  font-size: 0.9rem;
-  line-height: 1.45;
+  font-size: 0.88rem;
+  line-height: 1.4;
   text-align: center;
 }
 
@@ -603,8 +599,11 @@ img {
 }
 
 .character-name {
-  position: relative;
-  z-index: 2;
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
   padding: 2px 10px;
   background: var(--yellow);
   border: 2px solid var(--text);
@@ -613,6 +612,7 @@ img {
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.08em;
+  white-space: nowrap;
 }
 
 @keyframes idleWobble {
@@ -627,10 +627,9 @@ img {
 }
 
 .character {
-  position: relative;
-  flex: 1;
-  width: 100%;
-  min-height: 0;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -642,6 +641,7 @@ img {
   z-index: 2;
   width: auto;
   max-width: 100%;
+  height: 100%;
   max-height: 100%;
   object-fit: contain;
   object-position: center bottom;
@@ -655,10 +655,10 @@ img {
 
 .char-face {
   position: absolute;
-  bottom: 22px;
+  bottom: 30px;
   left: 50%;
-  width: 100px;
-  height: 100px;
+  width: 160px;
+  height: 160px;
   background: var(--white);
   border: 3px solid var(--text);
   border-radius: 50%;
@@ -673,43 +673,43 @@ img {
 }
 
 .char-eye {
-  top: 36px;
-  width: 10px;
-  height: 12px;
+  top: 56px;
+  width: 16px;
+  height: 20px;
   background: var(--text);
   border-radius: 999px;
 }
 
 .char-eye.left {
-  left: 28px;
+  left: 42px;
 }
 
 .char-eye.right {
-  right: 28px;
+  right: 42px;
 }
 
 .char-cheek {
-  top: 54px;
-  width: 14px;
-  height: 14px;
+  top: 86px;
+  width: 22px;
+  height: 22px;
   background: var(--pink);
   border-radius: 50%;
   opacity: 0.5;
 }
 
 .char-cheek.left {
-  left: 14px;
+  left: 22px;
 }
 
 .char-cheek.right {
-  right: 14px;
+  right: 22px;
 }
 
 .char-mouth {
-  bottom: 22px;
+  bottom: 34px;
   left: 50%;
-  width: 20px;
-  height: 4px;
+  width: 32px;
+  height: 5px;
   background: var(--text);
   border-radius: 999px;
   transform: translateX(-50%);
@@ -728,7 +728,7 @@ img {
   bottom: 4px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 2rem;
+  font-size: 5rem;
   line-height: 1;
   z-index: 1;
 }
