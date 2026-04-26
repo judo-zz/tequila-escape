@@ -19,6 +19,16 @@ const CARDS = {
 };
 const CARD_IDS = ['toast', 'fake', 'watch', 'chaser'];
 
+// ── Character expression images ──
+const CHAR_IMAGES = {
+  tuzyou:  'assets/tuzyou.png',   // 通常
+  utagai:  'assets/utagai.png',   // 疑い
+  bikkuri: 'assets/bikkuri.png',  // びっくり
+  horoyoi: 'assets/horoyoi.png',  // ほろ酔い
+  fuman:   'assets/fuman.png',    // 不満
+  deisui:  'assets/deisui.png',   // 泥酔
+};
+
 // ── Card artwork map (ware_=player, aite_=milk) ──
 const CARD_IMAGES = {
   player: {
@@ -114,6 +124,40 @@ function actLabel(turn) {
   if (turn <= 7) return 'ACT 2 / 本番';
   if (turn <= 9) return 'ACT 3 / ラスト';
   return 'FINAL';
+}
+
+// ── Character face ──
+function setCharFace(exprKey) {
+  const charEl = $('character');
+  const imgEl  = $('char-art');
+  // data-face drives CSS aura; exprKey is now the direct image key
+  const faceMap = { tuzyou:'normal', utagai:'doubt', bikkuri:'smile', horoyoi:'mood', fuman:'normal', deisui:'normal' };
+  if (charEl) charEl.dataset.face = faceMap[exprKey] || 'normal';
+  const src = CHAR_IMAGES[exprKey];
+  if (imgEl && src && imgEl.src !== new URL(src, document.baseURI).href) {
+    imgEl.src = src;
+  }
+}
+
+// Pick expression from current gauge values (called at TURN_START)
+function faceFromGauges() {
+  const g = state.gauges;
+  if (g.drunk >= 50)     return 'deisui';
+  if (g.sus   >= 70)     return 'utagai';
+  if (g.tens  <= 20)     return 'fuman';
+  if (g.mood  >= 50)     return 'horoyoi';
+  return 'tuzyou';
+}
+
+// Pick reaction expression from this turn's deltas (called in RESOLVE)
+function faceFromDeltas(deltas, playerCard, milkCard) {
+  if (playerCard === 'watch' && milkCard === 'fake') return 'bikkuri'; // player caught milk's fake
+  if (playerCard === 'fake'  && milkCard === 'watch') return 'bikkuri'; // both surprised at reveal
+  if (deltas.M >= 6)   return 'horoyoi';  // みるくノリ上昇
+  if (deltas.T <= -10) return 'fuman';    // 空気が冷えた
+  if (deltas.S >= 15)  return 'utagai';   // 疑惑上昇
+  if (deltas.M < 0)    return 'fuman';    // みるくノリ下降
+  return 'tuzyou';
 }
 
 // ── Utility ──
@@ -252,10 +296,9 @@ function enterTell() {
     hint.hidden = false;
   }
 
-  // みるく表情をテルに連動
-  const FACE_OF = { glass:'doubt', excite:'smile', bored:'normal', playful:'mood' };
-  const charEl = $('character');
-  if (charEl) charEl.dataset.face = FACE_OF[state.tell.type] || 'normal';
+  // みるく表情をテルに連動（実画像ファイルで切替）
+  const EXPR_OF = { glass:'utagai', excite:'bikkuri', bored:'tuzyou', playful:'horoyoi' };
+  setCharFace(EXPR_OF[state.tell.type] || 'tuzyou');
 
   setTimeout(() => {
     if (state.fsm === 'TELL_PHASE') setState('CARD_SELECT');
@@ -447,6 +490,9 @@ function enterResolve() {
 
   updateHUD();
 
+  // みるくの表情をターン結果に反応させる
+  setCharFace(faceFromDeltas(deltas, state.playerCard, state.milkCard));
+
   // Hide reveal cards halfway through (guard: don't touch DOM if FSM moved on)
   const resolveTurn = state.turn;
   setTimeout(() => { if (state.turn === resolveTurn) clearReveal(); }, REVEAL_HOLD_MS * 0.6);
@@ -470,7 +516,8 @@ function enterTurnEnd() {
   // 10 turns survived
   if (state.turn >= MAX_TURNS)   { state.endReason = 'survive'; return setState('RESULT'); }
 
-  // Continue
+  // Continue — update face to reflect current gauge state before next tell
+  setCharFace(faceFromGauges());
   state.turn++;
   setState('TURN_START');
 }
@@ -721,8 +768,20 @@ function showToast(msg) {
   toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
 }
 
+// ── Preload all images for instant switching ──
+function preloadImages() {
+  const srcs = [
+    ...Object.values(CHAR_IMAGES),
+    ...Object.values(CARD_IMAGES.player),
+    ...Object.values(CARD_IMAGES.milk),
+  ];
+  srcs.forEach(src => { const i = new Image(); i.src = src; });
+}
+
 // ── Init ──
 function init() {
+  preloadImages();
+
   // Mark all screens as hidden initially (intro is activated by setState('INTRO'))
   document.querySelectorAll('.screen').forEach(s => {
     s.setAttribute('aria-hidden', 'true');
