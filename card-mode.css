@@ -126,61 +126,178 @@ img {
 /* ── Intro ──────────────────────────────────────────────── */
 
 #intro-screen {
-  align-items: center;
-  justify-content: center;
-  padding: 24px 16px;
-  background: linear-gradient(180deg, #240A1A 0%, #130711 100%);
+  position: relative;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: #0D0008;
 }
 
-.intro-panel {
-  width: min(100%, 360px);
-  position: relative;
+/* background sparkle decoration */
+.intro-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.ibg-spark {
+  position: absolute;
+  color: var(--pink);
+  font-size: 1.1rem;
+  opacity: 0.55;
+}
+.ibg-spark.s1 { top:  8%; left: 60%; font-size: 1.4rem; color: var(--yellow); }
+.ibg-spark.s2 { top: 14%; right: 8%; font-size: 0.9rem; }
+.ibg-spark.s3 { top: 22%; right: 5%; font-size: 1.2rem; color: #FF8AB0; }
+.ibg-spark.s4 { top: 38%; left: 5%; font-size: 0.8rem; color: var(--yellow); opacity: 0.4; }
+.ibg-spark.s5 { bottom: 28%; right: 4%; font-size: 0.9rem; opacity: 0.4; }
+.ibg-spark.s6 { bottom: 20%; left: 10%; font-size: 1rem; color: #FF8AB0; opacity: 0.45; }
+
+/* pink glow blob top-right (CSS only, no blur) */
+.intro-bg::before {
+  content: "";
+  position: absolute;
+  top: -8%;
+  right: -12%;
+  width: 55%;
+  height: 55%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, rgba(255, 45, 111, 0.28) 0%, transparent 68%);
+}
+
+/* character art */
+.intro-char {
+  position: absolute;
+  bottom: 0;
+  left: -14px;
+  width: clamp(200px, 64vw, 280px);
+  object-fit: contain;
+  object-position: bottom center;
   z-index: 1;
+  pointer-events: none;
+}
+
+/* scrollable content layer */
+.intro-layer {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 22px 18px 20px;
-  border: var(--border-size) solid var(--text);
-  border-radius: 30px;
-  background: linear-gradient(180deg, rgba(255, 253, 247, 0.98) 0%, rgba(255, 244, 234, 0.96) 100%);
-  box-shadow: var(--shadow-lg);
+  align-items: flex-end;
+  min-height: 100%;
+  padding: 16px 14px 0;
+  gap: 0;
 }
 
-.intro-mark {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+/* speech bubble (top-right area, over character) */
+.intro-speech {
+  align-self: flex-end;
+  max-width: 58%;
+  padding: 9px 14px 8px;
   border: var(--border-size) solid var(--text);
   border-radius: var(--pill);
-  background: linear-gradient(180deg, #1F1020 0%, #120812 100%);
+  background: var(--white);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+.intro-speech::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 22px;
+  width: 14px;
+  height: 14px;
+  background: var(--white);
+  border-right: var(--border-size) solid var(--text);
+  border-bottom: var(--border-size) solid var(--text);
+  transform: rotate(45deg);
+}
+
+.speech-heart {
+  color: var(--pink);
+}
+
+/* title block: pushed to right to avoid character overlap */
+.intro-title-block {
+  align-self: flex-end;
+  max-width: 62%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-top: 10px;
+  gap: 4px;
+}
+
+.intro-sub {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: clamp(1rem, 4.5vw, 1.3rem);
+  line-height: 1;
+  text-shadow:
+    2px 2px 0 #1A1A1A,
+    -1px -1px 0 #1A1A1A;
+}
+
+.intro-title-main {
+  font-family: var(--font-jp);
+  font-size: clamp(2.2rem, 11vw, 3.4rem);
+  line-height: 0.95;
+  color: var(--yellow);
+  text-shadow:
+    3px 3px 0 #1A1A1A,
+    -2px -2px 0 #1A1A1A,
+    2px -2px 0 #1A1A1A,
+    -2px 2px 0 #1A1A1A,
+    0 4px 0 rgba(0,0,0,0.5);
+  letter-spacing: -0.02em;
+}
+
+.intro-card-mode-badge {
+  padding: 5px 14px 4px;
+  border: var(--border-size) solid var(--text);
+  border-radius: var(--pill);
+  background: linear-gradient(90deg, #FF2D6F 0%, #A40048 100%);
   color: var(--white);
   font-family: var(--font-en);
-  font-size: 1.1rem;
-  line-height: 1;
-  letter-spacing: 0.04em;
+  font-size: 1rem;
+  letter-spacing: 0.1em;
   box-shadow: var(--shadow-sm);
 }
 
-.intro-title {
-  font-family: var(--font-en);
-  font-size: clamp(2rem, 9vw, 3rem);
-  line-height: 1;
-  text-align: center;
-  color: var(--pink-deep);
-  text-shadow:
-    3px 3px 0 rgba(255, 230, 0, 0.9),
-    5px 5px 0 rgba(26, 26, 26, 0.26);
+/* spacer: height roughly matches character image area */
+.intro-hero-spacer {
+  flex-shrink: 0;
+  height: max(clamp(200px, 52vw, 260px), 0px);
+}
+
+/* bottom content section: full width, dark card feel */
+.intro-bottom {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 4px max(20px, env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, transparent 0%, rgba(13, 0, 8, 0.72) 14%);
 }
 
 .intro-copy {
   text-align: center;
-  line-height: 1.75;
-  font-size: 0.93rem;
-  color: rgba(26, 26, 26, 0.78);
+  line-height: 1.7;
+  font-size: 0.9rem;
+  color: rgba(255, 253, 247, 0.88);
 }
 
+/* card previews — dark with gold border */
 .intro-preview {
   width: 100%;
   display: grid;
@@ -192,46 +309,96 @@ img {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 12px 6px 10px;
-  border: var(--border-size) solid var(--text);
-  border-radius: 18px;
-  background: linear-gradient(180deg, #FFFDF7 0%, #FFF1E4 100%);
+  gap: 4px;
+  padding: 10px 4px 8px;
+  border: 2px solid var(--gold);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #1E0A18 0%, #120710 100%);
+  color: var(--white);
   box-shadow: var(--shadow-sm);
 }
 
-.preview-card:nth-child(1) { transform: rotate(-3deg); }
-.preview-card:nth-child(2) { transform: translateY(-4px) rotate(-1deg); }
-.preview-card:nth-child(3) { transform: translateY(-4px) rotate(1deg); }
-.preview-card:nth-child(4) { transform: rotate(3deg); }
+.preview-card:nth-child(1) { transform: rotate(-2.5deg); }
+.preview-card:nth-child(2) { transform: translateY(-3px) rotate(-1deg); }
+.preview-card:nth-child(3) { transform: translateY(-3px) rotate(1deg); }
+.preview-card:nth-child(4) { transform: rotate(2.5deg); }
 
 .preview-icon {
-  font-size: 1.65rem;
+  font-size: 1.5rem;
 }
 
 .preview-name {
-  font-size: 0.68rem;
-  letter-spacing: 0.04em;
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+  color: var(--gold);
+  text-align: center;
+  line-height: 1.3;
 }
 
+.preview-desc {
+  font-size: 0.5rem;
+  line-height: 1.4;
+  color: rgba(255, 253, 247, 0.58);
+  text-align: center;
+}
+
+/* rules notes */
 .intro-notes {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .intro-notes span {
-  padding: 6px 10px;
+  padding: 6px 12px;
+  border: 2px solid rgba(255, 45, 111, 0.52);
   border-radius: var(--pill);
-  background: rgba(255, 45, 111, 0.1);
-  font-size: 0.72rem;
-  color: var(--pink-deep);
+  background: rgba(255, 45, 111, 0.14);
+  font-size: 0.75rem;
+  color: rgba(255, 180, 205, 0.92);
+}
+
+/* large start button */
+.intro-start-btn {
+  width: min(92%, 340px);
+  padding: 18px 24px 16px;
+  border: var(--border-size) solid var(--text);
+  border-radius: var(--pill);
+  background: linear-gradient(180deg, #FF6AA0 0%, #FF2D6F 50%, #C9004F 100%);
+  color: var(--white);
+  font-family: var(--font-jp);
+  font-size: clamp(1.5rem, 6.5vw, 2rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 4px rgba(255, 45, 111, 0.3),
+    0 0 0 7px rgba(255, 45, 111, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: transform 0.18s var(--ease-bounce), box-shadow 0.18s var(--ease);
+}
+
+.intro-start-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-spark {
+  color: var(--yellow);
+  font-size: 1.1rem;
 }
 
 .link-back {
-  font-size: 0.82rem;
-  color: rgba(26, 26, 26, 0.58);
+  font-size: 0.8rem;
+  color: rgba(255, 253, 247, 0.46);
+  letter-spacing: 0.06em;
+  padding-bottom: 4px;
 }
 
 /* ── Game screen ─────────────────────────────────────────── */

@@ -13,42 +13,89 @@
 <div id="app">
 
   <div id="intro-screen" class="screen active">
-    <div class="intro-panel">
-      <div class="intro-mark">🎰 CARD MODE</div>
-      <h1 class="intro-title">対面カード心理戦</h1>
-      <p class="intro-copy">
-        みるくと同時にカードを出して、<br>
-        飲むか、ごまかすか、見抜くか、逃げ切るか。<br>
-        10ターンの読み合いを始める。
-      </p>
 
-      <div class="intro-preview" aria-hidden="true">
-        <div class="preview-card" data-card="toast">
-          <span class="preview-icon">🥂</span>
-          <span class="preview-name">乾杯</span>
-        </div>
-        <div class="preview-card" data-card="fake">
-          <span class="preview-icon">🎭</span>
-          <span class="preview-name">フリ</span>
-        </div>
-        <div class="preview-card" data-card="watch">
-          <span class="preview-icon">👁</span>
-          <span class="preview-name">見張る</span>
-        </div>
-        <div class="preview-card" data-card="chaser">
-          <span class="preview-icon">💧</span>
-          <span class="preview-name">逃がす</span>
-        </div>
+    <!-- decorative background sparks -->
+    <div class="intro-bg" aria-hidden="true">
+      <span class="ibg-spark s1">✦</span>
+      <span class="ibg-spark s2">✧</span>
+      <span class="ibg-spark s3">♥</span>
+      <span class="ibg-spark s4">✦</span>
+      <span class="ibg-spark s5">✧</span>
+      <span class="ibg-spark s6">♥</span>
+    </div>
+
+    <!-- character art -->
+    <img
+      src="assets/tuzyou.png"
+      alt=""
+      class="intro-char"
+      aria-hidden="true">
+
+    <!-- scrollable content layer -->
+    <div class="intro-layer">
+
+      <!-- speech bubble -->
+      <div class="intro-speech" aria-label="みるくと駆け引き勝負">
+        みるくと駆け引き勝負！<span class="speech-heart">♥</span>
       </div>
 
-      <div class="intro-notes">
-        <span>酔いすぎず</span>
-        <span>疑われすぎず</span>
-        <span>空気を冷やさず</span>
+      <!-- title block -->
+      <div class="intro-title-block">
+        <p class="intro-sub">テキーラから</p>
+        <h1 class="intro-title-main">逃げろ！</h1>
+        <div class="intro-card-mode-badge">CARD MODE</div>
       </div>
 
-      <button id="start-btn" class="primary-btn">対戦開始</button>
-      <a href="index.html" class="link-back">← 通常モードへ</a>
+      <!-- spacer: gives room so content starts below hero area -->
+      <div class="intro-hero-spacer" aria-hidden="true"></div>
+
+      <!-- below-hero content -->
+      <div class="intro-bottom">
+
+        <p class="intro-copy">
+          みるくと同時にカードを出して、<br>
+          飲むか、ごまかすか、見抜くか、逃げ切るか。<br>
+          10ターンの読み合いを始める。
+        </p>
+
+        <div class="intro-preview" aria-hidden="true">
+          <div class="preview-card" data-card="toast">
+            <span class="preview-icon">🥂</span>
+            <span class="preview-name">乾杯する</span>
+            <span class="preview-desc">酔いUP<br>疑惑DOWN</span>
+          </div>
+          <div class="preview-card" data-card="fake">
+            <span class="preview-icon">🎭</span>
+            <span class="preview-name">飲んだフリ</span>
+            <span class="preview-desc">ごまかして<br>酔いを回避</span>
+          </div>
+          <div class="preview-card" data-card="watch">
+            <span class="preview-icon">👁</span>
+            <span class="preview-name">見張る</span>
+            <span class="preview-desc">相手のフリを<br>見抜く！</span>
+          </div>
+          <div class="preview-card" data-card="chaser">
+            <span class="preview-icon">💧</span>
+            <span class="preview-name">逃げる</span>
+            <span class="preview-desc">チェイサーで<br>酔いを回復</span>
+          </div>
+        </div>
+
+        <div class="intro-notes">
+          <span>♥ 酔いすぎず</span>
+          <span>♥ 疑われすぎず</span>
+          <span>♥ 空気を冷やさず</span>
+        </div>
+
+        <button id="start-btn" class="intro-start-btn">
+          <span class="btn-spark">✦</span>
+          対戦開始！
+          <span class="btn-spark">✦</span>
+        </button>
+
+        <a href="index.html" class="link-back">── 通常モードへ ──</a>
+
+      </div>
     </div>
   </div>
 
