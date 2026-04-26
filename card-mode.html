@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>カードモード — テキーラから逃げろ！</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="card-mode.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ─── INTRO ─── -->
+  <div id="intro-screen" class="screen active">
+    <div class="intro-wrap">
+      <h1 class="intro-title">カードモード</h1>
+      <div class="intro-kana">心理戦・同時出し</div>
+      <div class="intro-desc">
+        みるくとカードを同時に出す。<br>
+        飲む？フリ？見張る？水で逃げる？<br>
+        10ターン、読み切れ。
+      </div>
+      <div class="intro-hand-preview" aria-hidden="true">
+        <div class="preview-card"><span class="preview-icon">🥂</span><span class="preview-count">×4</span></div>
+        <div class="preview-card"><span class="preview-icon">🎭</span><span class="preview-count">×3</span></div>
+        <div class="preview-card"><span class="preview-icon">👁</span><span class="preview-count">×2</span></div>
+        <div class="preview-card"><span class="preview-icon">💧</span><span class="preview-count">×2</span></div>
+      </div>
+      <button id="start-btn" class="primary-btn">対戦開始</button>
+      <a href="index.html" class="link-back">← 通常モードへ</a>
+    </div>
+  </div>
+
+  <!-- ─── GAME ─── -->
+  <div id="game-screen" class="screen">
+
+    <!-- HUD -->
+    <div class="hud">
+      <div class="hud-top-row">
+        <div class="hud-turn">TURN <strong id="turn-display">1 / 10</strong></div>
+        <div id="act-badge" class="act-badge">ACT 1 / 探り合い</div>
+      </div>
+      <div class="hud-grid">
+        <div class="hud-row">
+          <span class="hud-label">🍸酔い</span>
+          <div class="gauge"><div id="drunk-fill" class="gauge-fill drunk"></div></div>
+          <span id="drunk-value" class="gauge-value">0</span>
+        </div>
+        <div class="hud-row">
+          <span class="hud-label">👀疑惑</span>
+          <div class="gauge"><div id="sus-fill" class="gauge-fill sus"></div></div>
+          <span id="sus-value" class="gauge-value">20</span>
+        </div>
+        <div class="hud-row">
+          <span class="hud-label">✨空気</span>
+          <div class="gauge"><div id="tens-fill" class="gauge-fill tens"></div></div>
+          <span id="tens-value" class="gauge-value">60</span>
+        </div>
+        <div class="hud-row">
+          <span class="hud-label">みるく</span>
+          <div class="gauge"><div id="mood-fill" class="gauge-fill mood"></div></div>
+          <span id="mood-value" class="gauge-value">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAGE -->
+    <div class="stage">
+      <div id="tell-bubble" class="tell-bubble" hidden>「……」</div>
+      <div class="character-wrap">
+        <div class="character">
+          <img class="char-art" src="assets/milk.png" alt="" aria-hidden="true"
+               onload="this.classList.add('loaded')"
+               onerror="this.style.display='none'">
+          <span class="char-base" aria-hidden="true">🥃</span>
+        </div>
+        <div class="character-name">みるく</div>
+      </div>
+
+      <!-- REVEAL AREA (hidden until reveal phase) -->
+      <div id="reveal-area" class="reveal-area" hidden>
+        <div class="flip-card" id="card-player">
+          <div class="flip-inner">
+            <div class="flip-front"><span class="card-back-icon">？</span></div>
+            <div class="flip-back"></div>
+          </div>
+        </div>
+        <div class="vs-label">VS</div>
+        <div class="flip-card" id="card-milk">
+          <div class="flip-inner">
+            <div class="flip-front"><span class="card-back-icon">？</span></div>
+            <div class="flip-back"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="sfx-text" class="sfx-text"></div>
+    </div>
+
+    <!-- HAND -->
+    <div id="hand" class="hand blocked">
+      <div class="hand-label">手札</div>
+      <div class="hand-grid">
+        <button class="card-slot" data-card="toast" aria-label="乾杯する 残り4枚" disabled>
+          <span class="card-icon">🥂</span>
+          <span class="card-label">乾杯する</span>
+          <span class="card-count">×4</span>
+          <span class="card-hint">疑惑↓ 酔い↑</span>
+        </button>
+        <button class="card-slot" data-card="fake" aria-label="飲んだフリ 残り3枚" disabled>
+          <span class="card-icon">🎭</span>
+          <span class="card-label">飲んだフリ</span>
+          <span class="card-count">×3</span>
+          <span class="card-hint">バレると大事故</span>
+        </button>
+        <button class="card-slot" data-card="watch" aria-label="見張る 残り2枚" disabled>
+          <span class="card-icon">👁</span>
+          <span class="card-label">見張る</span>
+          <span class="card-count">×2</span>
+          <span class="card-hint">フリをカウンター</span>
+        </button>
+        <button class="card-slot" data-card="chaser" aria-label="チェイサー 残り2枚" disabled>
+          <span class="card-icon">💧</span>
+          <span class="card-label">チェイサー</span>
+          <span class="card-count">×2</span>
+          <span class="card-hint">酔い↓ 場冷え注意</span>
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /game-screen -->
+
+  <!-- ─── RESULT ─── -->
+  <div id="result-screen" class="screen">
+    <div id="result-frame" class="result-frame">
+      <div id="result-verdict" class="result-verdict">— RESULT —</div>
+      <div id="result-title-big" class="result-title-big"></div>
+
+      <div class="result-tabs" role="tablist">
+        <button class="tab-btn active" data-tab="objective" role="tab" aria-selected="true">事実</button>
+        <button class="tab-btn" data-tab="monologue" role="tab" aria-selected="false">モノローグ</button>
+        <button class="tab-btn" data-tab="cast" role="tab" aria-selected="false">みるく視点</button>
+      </div>
+      <div id="result-pov" class="result-pov" role="tabpanel" aria-live="polite"></div>
+    </div>
+    <div class="result-actions">
+      <button id="retry-btn" class="primary-btn">もう一度</button>
+      <button id="copy-btn" class="secondary-btn">結果をコピー</button>
+    </div>
+  </div>
+
+  <div id="toast-msg" class="toast"></div>
+
+</div><!-- /app -->
+<script src="card-mode.js" defer></script>
+</body>
+</html>
