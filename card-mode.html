@@ -36,96 +36,129 @@
   <!-- ─── GAME ─── -->
   <div id="game-screen" class="screen">
 
-    <!-- HUD -->
+    <!-- 背景装飾（フラット） -->
+    <div class="bg-decor" aria-hidden="true">
+      <div class="bg-wall-line"></div>
+      <span class="bg-deco bg-heart">♥</span>
+      <span class="bg-deco bg-star">★</span>
+      <span class="bg-deco bg-note">♪</span>
+    </div>
+
+    <!-- HUD: コンパクトチップ -->
     <div class="hud">
       <div class="hud-top-row">
         <div class="hud-turn">TURN <strong id="turn-display">1 / 10</strong></div>
         <div id="act-badge" class="act-badge">ACT 1 / 探り合い</div>
       </div>
       <div class="hud-grid">
-        <div class="hud-row">
-          <span class="hud-label">🍸酔い</span>
-          <div class="gauge"><div id="drunk-fill" class="gauge-fill drunk"></div></div>
-          <span id="drunk-value" class="gauge-value">0</span>
+        <div class="hud-chip">
+          <span class="chip-icon">🍸</span>
+          <span class="chip-value" id="drunk-value">0</span>
+          <div class="chip-bar"><div id="drunk-fill" class="gauge-fill drunk"></div></div>
         </div>
-        <div class="hud-row">
-          <span class="hud-label">👀疑惑</span>
-          <div class="gauge"><div id="sus-fill" class="gauge-fill sus"></div></div>
-          <span id="sus-value" class="gauge-value">20</span>
+        <div class="hud-chip">
+          <span class="chip-icon">👀</span>
+          <span class="chip-value" id="sus-value">20</span>
+          <div class="chip-bar"><div id="sus-fill" class="gauge-fill sus"></div></div>
         </div>
-        <div class="hud-row">
-          <span class="hud-label">✨空気</span>
-          <div class="gauge"><div id="tens-fill" class="gauge-fill tens"></div></div>
-          <span id="tens-value" class="gauge-value">60</span>
+        <div class="hud-chip">
+          <span class="chip-icon">✨</span>
+          <span class="chip-value" id="tens-value">60</span>
+          <div class="chip-bar"><div id="tens-fill" class="gauge-fill tens"></div></div>
         </div>
-        <div class="hud-row">
-          <span class="hud-label">みるく</span>
-          <div class="gauge"><div id="mood-fill" class="gauge-fill mood"></div></div>
-          <span id="mood-value" class="gauge-value">0</span>
+        <div class="hud-chip">
+          <span class="chip-icon">💗</span>
+          <span class="chip-value" id="mood-value">0</span>
+          <div class="chip-bar"><div id="mood-fill" class="gauge-fill mood"></div></div>
         </div>
       </div>
     </div>
 
-    <!-- STAGE -->
+    <!-- STAGE: 縦3段グリッド -->
     <div class="stage">
-      <div id="tell-bubble" class="tell-bubble" hidden>「……」</div>
-      <div class="character-wrap">
-        <div class="character">
-          <img class="char-art" src="assets/milk.png" alt="" aria-hidden="true"
-               onload="this.classList.add('loaded')"
-               onerror="this.style.display='none'">
-          <span class="char-base" aria-hidden="true">🥃</span>
-        </div>
-        <div class="character-name">みるく</div>
-      </div>
 
-      <!-- REVEAL AREA (hidden until reveal phase) -->
-      <div id="reveal-area" class="reveal-area" hidden>
-        <div class="flip-card" id="card-player">
-          <div class="flip-inner">
-            <div class="flip-front"><span class="card-back-icon">？</span></div>
-            <div class="flip-back"></div>
-          </div>
-        </div>
-        <div class="vs-label">VS</div>
-        <div class="flip-card" id="card-milk">
-          <div class="flip-inner">
-            <div class="flip-front"><span class="card-back-icon">？</span></div>
-            <div class="flip-back"></div>
+      <!-- 段1: テルエリア -->
+      <div class="tell-area">
+        <div id="tell-bubble" class="tell-bubble" hidden>「……」</div>
+        <div id="tell-hint" class="tell-hint" hidden>
+          <span class="hint-icon"></span>
+          <div class="hint-text">
+            <div class="hint-observation"></div>
+            <div class="hint-prediction"></div>
           </div>
         </div>
       </div>
 
-      <div id="sfx-text" class="sfx-text"></div>
-    </div>
+      <!-- 段2: キャラクターエリア -->
+      <div class="character-area">
+        <div class="character-wrap">
+          <div id="character" class="character" data-face="normal">
+            <img class="char-art" src="assets/milk.png" alt="" aria-hidden="true"
+                 onload="this.classList.add('loaded')"
+                 onerror="this.dataset.failed='1'">
+            <!-- 画像読込失敗時のCSS簡易顔フォールバック -->
+            <div class="char-fallback" aria-hidden="true">
+              <span class="face-eye left"></span>
+              <span class="face-eye right"></span>
+              <span class="face-mouth"></span>
+            </div>
+          </div>
+          <div class="character-name">みるく</div>
+        </div>
+      </div>
 
-    <!-- HAND -->
+      <!-- 段3: 卓上エリア（常時表示） -->
+      <div class="table-area">
+        <div class="table-surface" aria-hidden="true">
+          <span class="table-glass">🥃</span>
+        </div>
+        <div class="reveal-row">
+          <div class="flip-card" id="card-player">
+            <div class="flip-inner">
+              <div class="flip-front"><span class="card-back-icon">？</span></div>
+              <div class="flip-back"></div>
+            </div>
+          </div>
+          <div id="vs-label" class="vs-label">せーの！</div>
+          <div class="flip-card" id="card-milk">
+            <div class="flip-inner">
+              <div class="flip-front"><span class="card-back-icon">？</span></div>
+              <div class="flip-back"></div>
+            </div>
+          </div>
+        </div>
+        <div id="sfx-text" class="sfx-text"></div>
+      </div>
+
+    </div><!-- /stage -->
+
+    <!-- HAND: 2×2グリッド -->
     <div id="hand" class="hand blocked">
       <div class="hand-label">手札</div>
       <div class="hand-grid">
         <button class="card-slot" data-card="toast" aria-label="乾杯する 残り4枚" disabled>
           <span class="card-icon">🥂</span>
           <span class="card-label">乾杯する</span>
-          <span class="card-count">×4</span>
           <span class="card-hint">疑惑↓ 酔い↑</span>
+          <span class="card-count">×4</span>
         </button>
         <button class="card-slot" data-card="fake" aria-label="飲んだフリ 残り3枚" disabled>
           <span class="card-icon">🎭</span>
           <span class="card-label">飲んだフリ</span>
-          <span class="card-count">×3</span>
           <span class="card-hint">バレると大事故</span>
+          <span class="card-count">×3</span>
         </button>
         <button class="card-slot" data-card="watch" aria-label="見張る 残り2枚" disabled>
           <span class="card-icon">👁</span>
           <span class="card-label">見張る</span>
-          <span class="card-count">×2</span>
           <span class="card-hint">フリをカウンター</span>
+          <span class="card-count">×2</span>
         </button>
         <button class="card-slot" data-card="chaser" aria-label="チェイサー 残り2枚" disabled>
           <span class="card-icon">💧</span>
           <span class="card-label">チェイサー</span>
-          <span class="card-count">×2</span>
           <span class="card-hint">酔い↓ 場冷え注意</span>
+          <span class="card-count">×2</span>
         </button>
       </div>
     </div>
@@ -137,6 +170,7 @@
     <div id="result-frame" class="result-frame">
       <div id="result-verdict" class="result-verdict">— RESULT —</div>
       <div id="result-title-big" class="result-title-big"></div>
+      <div id="result-card-img" class="result-card-img-wrap" aria-hidden="true"></div>
 
       <div class="result-tabs" role="tablist">
         <button class="tab-btn active" data-tab="objective" role="tab" aria-selected="true">事実</button>

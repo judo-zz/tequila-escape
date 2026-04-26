@@ -19,6 +19,24 @@ const CARDS = {
 };
 const CARD_IDS = ['toast', 'fake', 'watch', 'chaser'];
 
+// ── Card artwork map (ware_=player, aite_=milk) ──
+const CARD_IMAGES = {
+  player: {
+    toast:  'assets/ware_nomu.PNG',
+    fake:   'assets/ware_fake.PNG',
+    watch:  'assets/ware_kanshi.PNG',
+    chaser: 'assets/ware_tyeisa-.PNG',
+    back:   'assets/ware_ura.PNG',
+  },
+  milk: {
+    toast:  'assets/aite_nomu.PNG',
+    fake:   'assets/aite_fake.PNG',
+    watch:  'assets/aite_kanshi.PNG',
+    chaser: 'assets/aite_yosumi.PNG',
+    back:   'assets/aite_ura.PNG',
+  },
+};
+
 // ── Compatibility matrix (base values before act multiplier) ──
 // Keys: D=drunk, S=sus(suspicion), T=tens(tension/air), M=mood
 const MATRIX = {
@@ -72,10 +90,10 @@ const SFX_LABELS = {
 // TELL_OF maps milkCard → tell type ID
 const TELL_OF = { watch:'glass', toast:'excite', chaser:'bored', fake:'playful' };
 const TELLS = {
-  glass:   { text:'「グラス、減ってないなぁ……」' },
-  excite:  { text:'「ねぇ、もっといこ？！」' },
-  bored:   { text:'「ふぅ……」' },
-  playful: { text:'「次は……どうしよっかな？」' },
+  glass:   { text:'「グラス、減ってないなぁ……」', icon:'👀', observation:'みるくがグラスを見ている', prediction:'見張るかも' },
+  excite:  { text:'「ねぇ、もっといこ？！」',       icon:'🙂', observation:'笑顔が深まった',            prediction:'乾杯かも' },
+  bored:   { text:'「ふぅ……」',                     icon:'💧', observation:'息をついた',                prediction:'様子見かも' },
+  playful: { text:'「次は……どうしよっかな？」',     icon:'🎭', observation:'髪を触った',                prediction:'飲んだフリかも' },
 };
 const TELL_IDS = ['glass', 'excite', 'bored', 'playful'];
 
@@ -221,10 +239,23 @@ function enterTell() {
   const tellData = TELLS[state.tell.type];
   el.textContent = state.tell.chaserSpecial ? '「ぐびぐび、つまんないな〜」' : tellData.text;
   el.hidden = false;
-  // Trigger transition
   el.classList.remove('tell-in');
   void el.offsetWidth;
   el.classList.add('tell-in');
+
+  // テルヒントカードを更新
+  const hint = $('tell-hint');
+  if (hint) {
+    hint.querySelector('.hint-icon').textContent        = tellData.icon;
+    hint.querySelector('.hint-observation').textContent = tellData.observation;
+    hint.querySelector('.hint-prediction').textContent  = tellData.prediction;
+    hint.hidden = false;
+  }
+
+  // みるく表情をテルに連動
+  const FACE_OF = { glass:'doubt', excite:'smile', bored:'normal', playful:'mood' };
+  const charEl = $('character');
+  if (charEl) charEl.dataset.face = FACE_OF[state.tell.type] || 'normal';
 
   setTimeout(() => {
     if (state.fsm === 'TELL_PHASE') setState('CARD_SELECT');
@@ -235,6 +266,8 @@ function clearTell() {
   const el = $('tell-bubble');
   el.classList.remove('tell-in');
   el.hidden = true;
+  const hint = $('tell-hint');
+  if (hint) hint.hidden = true;
 }
 
 function enterCardSelect() {
@@ -300,6 +333,7 @@ function onCardTap(cardId) {
   setState('REVEAL');
 }
 
+// CSS emoji+text fallback for flip-back (face-up side)
 function setFlipBack(el, icon, label) {
   const iconEl  = document.createElement('span');
   iconEl.className   = 'card-face-icon';
@@ -307,16 +341,47 @@ function setFlipBack(el, icon, label) {
   const labelEl = document.createElement('span');
   labelEl.className   = 'card-face-label';
   labelEl.textContent = label;
-  const back = el.querySelector('.flip-back');
-  back.replaceChildren(iconEl, labelEl);
+  el.querySelector('.flip-back').replaceChildren(iconEl, labelEl);
+}
+
+// Set flip-back (face-up) to artwork image; falls back to emoji+text
+function setFlipFace(flipCardEl, imgSrc, fallbackIcon, fallbackLabel) {
+  if (!imgSrc) { setFlipBack(flipCardEl, fallbackIcon, fallbackLabel); return; }
+  const img = document.createElement('img');
+  img.className = 'card-reveal-img';
+  img.alt = '';
+  img.setAttribute('aria-hidden', 'true');
+  img.onerror = () => setFlipBack(flipCardEl, fallbackIcon, fallbackLabel);
+  img.src = imgSrc;
+  flipCardEl.querySelector('.flip-back').replaceChildren(img);
+}
+
+// Set flip-front (face-down) to back-of-card artwork; falls back to ？ CSS
+function setFlipFront(flipCardEl, imgSrc) {
+  if (!imgSrc) return;
+  const front = flipCardEl.querySelector('.flip-front');
+  const img = document.createElement('img');
+  img.className = 'card-reveal-img';
+  img.alt = '';
+  img.setAttribute('aria-hidden', 'true');
+  img.onerror = () => {
+    const icon = document.createElement('span');
+    icon.className = 'card-back-icon';
+    icon.textContent = '？';
+    front.replaceChildren(icon);
+  };
+  img.src = imgSrc;
+  front.replaceChildren(img);
 }
 
 function enterReveal() {
-  const revealArea = $('reveal-area');
-  revealArea.hidden = false;
-
+  // Table area is always visible — no hidden toggle needed
   // milkCard was decided in TELL_PHASE; store it now for RESOLVE
   state.milkCard = state.tell.willPlay;
+
+  // Switch label to VS for dramatic reveal
+  const vsEl = $('vs-label');
+  if (vsEl) vsEl.textContent = 'VS';
 
   const playerEl = $('card-player');
   const milkEl   = $('card-milk');
@@ -325,11 +390,13 @@ function enterReveal() {
   playerEl.classList.remove('flipped');
   milkEl.classList.remove('flipped');
 
-  // Populate card faces via DOM (avoids innerHTML + escaping concerns)
+  // Populate card faces — artwork image preferred, emoji+text as fallback
   const pCard = CARDS[state.playerCard];
   const mCard = CARDS[state.milkCard];
-  setFlipBack(playerEl, pCard.icon, pCard.label);
-  setFlipBack(milkEl,   mCard.icon, mCard.milkLabel);
+  setFlipFront(playerEl, CARD_IMAGES.player.back);
+  setFlipFront(milkEl,   CARD_IMAGES.milk.back);
+  setFlipFace(playerEl, CARD_IMAGES.player[state.playerCard], pCard.icon, pCard.label);
+  setFlipFace(milkEl,   CARD_IMAGES.milk[state.milkCard],   mCard.icon, mCard.milkLabel);
 
   // Flip, then chain to RESOLVE — nested setTimeout keeps the two phases coupled
   setTimeout(() => {
@@ -342,9 +409,11 @@ function enterReveal() {
 }
 
 function clearReveal() {
-  $('reveal-area').hidden = true;
   $('card-player').classList.remove('flipped');
   $('card-milk').classList.remove('flipped');
+  // Reset vs-label for next turn
+  const vsEl = $('vs-label');
+  if (vsEl) vsEl.textContent = 'せーの！';
 }
 
 function enterResolve() {
@@ -517,6 +586,22 @@ function enterResult() {
 
   $('result-verdict').textContent   = `— ${VERDICT_LABELS[s.ending]} —`;
   $('result-title-big').textContent = s.title;
+
+  // Show representative card image (decisive card, fallback to top card)
+  const preview = $('result-card-img');
+  if (preview) {
+    preview.innerHTML = '';
+    const cardId = s.decisive ? s.decisive.p : s.topCard.id;
+    const imgSrc = CARD_IMAGES.player[cardId];
+    if (imgSrc) {
+      const img = document.createElement('img');
+      img.src = imgSrc;
+      img.alt = CARDS[cardId].label;
+      img.className = 'result-card-art';
+      img.onerror = () => preview.remove();
+      preview.appendChild(img);
+    }
+  }
 
   // Default tab (listeners are bound once in init())
   setResultTab('objective');
