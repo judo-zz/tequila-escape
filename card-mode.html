@@ -12,129 +12,181 @@
 <body>
 <div id="app">
 
-  <!-- ─── INTRO ─── -->
   <div id="intro-screen" class="screen active">
-    <div class="intro-wrap">
-      <h1 class="intro-title">カードモード</h1>
-      <div class="intro-kana">心理戦・同時出し</div>
-      <div class="intro-desc">
-        みるくとカードを同時に出す。<br>
-        飲む？フリ？見張る？水で逃げる？<br>
-        10ターン、読み切れ。
+    <div class="intro-panel">
+      <div class="intro-mark">🎰 CARD MODE</div>
+      <h1 class="intro-title">対面カード心理戦</h1>
+      <p class="intro-copy">
+        みるくと同時にカードを出して、<br>
+        飲むか、ごまかすか、見抜くか、逃げ切るか。<br>
+        10ターンの読み合いを始める。
+      </p>
+
+      <div class="intro-preview" aria-hidden="true">
+        <div class="preview-card" data-card="toast">
+          <span class="preview-icon">🥂</span>
+          <span class="preview-name">乾杯</span>
+        </div>
+        <div class="preview-card" data-card="fake">
+          <span class="preview-icon">🎭</span>
+          <span class="preview-name">フリ</span>
+        </div>
+        <div class="preview-card" data-card="watch">
+          <span class="preview-icon">👁</span>
+          <span class="preview-name">見張る</span>
+        </div>
+        <div class="preview-card" data-card="chaser">
+          <span class="preview-icon">💧</span>
+          <span class="preview-name">逃がす</span>
+        </div>
       </div>
-      <div class="intro-hand-preview" aria-hidden="true">
-        <div class="preview-card"><span class="preview-icon">🥂</span><span class="preview-count">×4</span></div>
-        <div class="preview-card"><span class="preview-icon">🎭</span><span class="preview-count">×3</span></div>
-        <div class="preview-card"><span class="preview-icon">👁</span><span class="preview-count">×2</span></div>
-        <div class="preview-card"><span class="preview-icon">💧</span><span class="preview-count">×2</span></div>
+
+      <div class="intro-notes">
+        <span>酔いすぎず</span>
+        <span>疑われすぎず</span>
+        <span>空気を冷やさず</span>
       </div>
+
       <button id="start-btn" class="primary-btn">対戦開始</button>
       <a href="index.html" class="link-back">← 通常モードへ</a>
     </div>
   </div>
 
-  <!-- ─── GAME ─── -->
   <div id="game-screen" class="screen">
+    <header class="hud">
+      <div class="hud-row">
+        <div class="hud-logo" aria-label="CARD MODE">
+          <span class="hud-logo-icon">🎰</span>
+          <span class="hud-logo-text">CARD MODE</span>
+        </div>
 
-    <!-- 背景装飾（フラット） -->
-    <div class="bg-decor" aria-hidden="true">
-      <div class="bg-wall-line"></div>
-      <span class="bg-deco bg-heart">♥</span>
-      <span class="bg-deco bg-star">★</span>
-      <span class="bg-deco bg-note">♪</span>
-    </div>
+        <div class="hud-stat">
+          <div class="hud-stat-top">
+            <span class="hud-stat-icon">🍸</span>
+            <span class="hud-stat-name">酔い</span>
+            <strong id="drunk-value" class="hud-stat-value">0</strong>
+          </div>
+          <div class="hud-bar"><div id="drunk-fill" class="gauge-fill drunk"></div></div>
+        </div>
 
-    <!-- HUD: コンパクトチップ -->
-    <div class="hud">
-      <div class="hud-top-row">
-        <div class="hud-turn">TURN <strong id="turn-display">1 / 10</strong></div>
-        <div id="act-badge" class="act-badge">ACT 1 / 探り合い</div>
+        <div class="hud-stat">
+          <div class="hud-stat-top">
+            <span class="hud-stat-icon">👀</span>
+            <span class="hud-stat-name">疑惑</span>
+            <strong id="sus-value" class="hud-stat-value">20</strong>
+          </div>
+          <div class="hud-bar"><div id="sus-fill" class="gauge-fill sus"></div></div>
+        </div>
+
+        <div class="hud-stat">
+          <div class="hud-stat-top">
+            <span class="hud-stat-icon">✨</span>
+            <span class="hud-stat-name">空気</span>
+            <strong id="tens-value" class="hud-stat-value">60</strong>
+          </div>
+          <div class="hud-bar"><div id="tens-fill" class="gauge-fill tens"></div></div>
+        </div>
+
+        <div class="hud-stat">
+          <div class="hud-stat-top">
+            <span class="hud-stat-icon">💗</span>
+            <span class="hud-stat-name">みるく</span>
+            <strong id="mood-value" class="hud-stat-value">0</strong>
+          </div>
+          <div class="hud-bar"><div id="mood-fill" class="gauge-fill mood"></div></div>
+        </div>
+
+        <div class="hud-meta">
+          <div class="hud-turnline">TURN <strong id="turn-display">1 / 10</strong></div>
+          <div id="act-badge" class="act-badge">ACT 1 / 探り合い</div>
+        </div>
       </div>
-      <div class="hud-grid">
-        <div class="hud-chip">
-          <span class="chip-icon">🍸</span>
-          <span class="chip-value" id="drunk-value">0</span>
-          <div class="chip-bar"><div id="drunk-fill" class="gauge-fill drunk"></div></div>
-        </div>
-        <div class="hud-chip">
-          <span class="chip-icon">👀</span>
-          <span class="chip-value" id="sus-value">20</span>
-          <div class="chip-bar"><div id="sus-fill" class="gauge-fill sus"></div></div>
-        </div>
-        <div class="hud-chip">
-          <span class="chip-icon">✨</span>
-          <span class="chip-value" id="tens-value">60</span>
-          <div class="chip-bar"><div id="tens-fill" class="gauge-fill tens"></div></div>
-        </div>
-        <div class="hud-chip">
-          <span class="chip-icon">💗</span>
-          <span class="chip-value" id="mood-value">0</span>
-          <div class="chip-bar"><div id="mood-fill" class="gauge-fill mood"></div></div>
-        </div>
-      </div>
-    </div>
+    </header>
 
-    <!-- STAGE: 縦3段グリッド -->
-    <div class="stage">
-
-      <!-- 段1: テルエリア -->
-      <div class="tell-area">
-        <div id="tell-bubble" class="tell-bubble" hidden>「……」</div>
-        <div id="tell-hint" class="tell-hint" hidden>
-          <span class="hint-icon"></span>
-          <div class="hint-text">
-            <div class="hint-observation"></div>
-            <div class="hint-prediction"></div>
+    <main class="stage">
+      <section class="milk-stage">
+        <div class="milk-overlays">
+          <div id="tell-bubble" class="tell-bubble" hidden>「……」</div>
+          <div id="tell-hint" class="tell-hint" hidden>
+            <span class="hint-icon"></span>
+            <div class="hint-copy">
+              <div class="hint-observation"></div>
+              <div class="hint-prediction"></div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- 段2: キャラクターエリア -->
-      <div class="character-area">
-        <div class="character-wrap">
+        <div class="milk-ambient" aria-hidden="true"></div>
+
+        <div class="character-stage">
+          <div class="seat-glow" aria-hidden="true"></div>
           <div id="character" class="character" data-face="normal">
-            <img id="char-art" class="char-art" src="assets/tuzyou.png" alt="" aria-hidden="true"
-                 onload="this.classList.add('loaded')"
-                 onerror="this.dataset.failed='1'">
-            <!-- 画像読込失敗時のCSS簡易顔フォールバック -->
+            <img
+              id="char-art"
+              class="char-art"
+              src="assets/tuzyou.png"
+              alt=""
+              aria-hidden="true"
+              onload="this.classList.add('loaded')"
+              onerror="this.dataset.failed='1'">
             <div class="char-fallback" aria-hidden="true">
               <span class="face-eye left"></span>
               <span class="face-eye right"></span>
               <span class="face-mouth"></span>
             </div>
           </div>
-          <div class="character-name">みるく</div>
-        </div>
-      </div>
 
-      <!-- 段3: 卓上エリア（常時表示） -->
-      <div class="table-area">
+          <div class="milk-caption">
+            <span class="milk-name">みるく</span>
+            <span class="milk-seat">正面席</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="table-area">
         <div class="table-surface" aria-hidden="true">
-          <span class="table-glass">🥃</span>
+          <span class="table-chip chip-left"></span>
+          <span class="table-chip chip-right"></span>
         </div>
+
         <div class="reveal-row">
-          <div class="flip-card" id="card-player">
-            <div class="flip-inner">
-              <div class="flip-front"><span class="card-back-icon">？</span></div>
-              <div class="flip-back"></div>
+          <div class="reveal-side">
+            <div class="reveal-owner">YOUR CARD</div>
+            <div class="flip-card" id="card-player">
+              <div class="flip-inner">
+                <div class="flip-front"><span class="card-back-icon">？</span></div>
+                <div class="flip-back"></div>
+              </div>
             </div>
+            <div class="reveal-caption">あなた</div>
           </div>
+
           <div id="vs-label" class="vs-label">せーの！</div>
-          <div class="flip-card" id="card-milk">
-            <div class="flip-inner">
-              <div class="flip-front"><span class="card-back-icon">？</span></div>
-              <div class="flip-back"></div>
+
+          <div class="reveal-side">
+            <div class="reveal-owner">MILK</div>
+            <div class="flip-card" id="card-milk">
+              <div class="flip-inner">
+                <div class="flip-front"><span class="card-back-icon">？</span></div>
+                <div class="flip-back"></div>
+              </div>
             </div>
+            <div class="reveal-caption">みるく</div>
           </div>
         </div>
+
         <div id="sfx-text" class="sfx-text"></div>
+      </section>
+    </main>
+
+    <section id="hand" class="hand blocked">
+      <div class="hand-head">
+        <div class="hand-copy">
+          <span class="hand-title">あなたの手札</span>
+          <span class="hand-subtitle">1枚えらんで同時に出す</span>
+        </div>
       </div>
 
-    </div><!-- /stage -->
-
-    <!-- HAND: 2×2グリッド -->
-    <div id="hand" class="hand blocked">
-      <div class="hand-label">手札</div>
       <div class="hand-grid">
         <button class="card-slot" data-card="toast" aria-label="乾杯する 残り4枚" disabled>
           <span class="card-icon">🥂</span>
@@ -142,18 +194,21 @@
           <span class="card-hint">疑惑↓ 酔い↑</span>
           <span class="card-count">×4</span>
         </button>
+
         <button class="card-slot" data-card="fake" aria-label="飲んだフリ 残り3枚" disabled>
           <span class="card-icon">🎭</span>
           <span class="card-label">飲んだフリ</span>
           <span class="card-hint">バレると大事故</span>
           <span class="card-count">×3</span>
         </button>
+
         <button class="card-slot" data-card="watch" aria-label="見張る 残り2枚" disabled>
           <span class="card-icon">👁</span>
           <span class="card-label">見張る</span>
           <span class="card-hint">フリをカウンター</span>
           <span class="card-count">×2</span>
         </button>
+
         <button class="card-slot" data-card="chaser" aria-label="チェイサー 残り2枚" disabled>
           <span class="card-icon">💧</span>
           <span class="card-label">チェイサー</span>
@@ -161,24 +216,30 @@
           <span class="card-count">×2</span>
         </button>
       </div>
-    </div>
+    </section>
+  </div>
 
-  </div><!-- /game-screen -->
-
-  <!-- ─── RESULT ─── -->
   <div id="result-screen" class="screen">
     <div id="result-frame" class="result-frame">
       <div id="result-verdict" class="result-verdict">— RESULT —</div>
-      <div id="result-title-big" class="result-title-big"></div>
-      <div id="result-card-img" class="result-card-img-wrap" aria-hidden="true"></div>
+
+      <div class="result-hero">
+        <div class="result-copy">
+          <div class="result-kicker">対戦結果</div>
+          <div id="result-title-big" class="result-title-big"></div>
+        </div>
+        <div id="result-card-img" class="result-card-img-wrap" aria-hidden="true"></div>
+      </div>
 
       <div class="result-tabs" role="tablist">
         <button class="tab-btn active" data-tab="objective" role="tab" aria-selected="true">事実</button>
         <button class="tab-btn" data-tab="monologue" role="tab" aria-selected="false">モノローグ</button>
         <button class="tab-btn" data-tab="cast" role="tab" aria-selected="false">みるく視点</button>
       </div>
+
       <div id="result-pov" class="result-pov" role="tabpanel" aria-live="polite"></div>
     </div>
+
     <div class="result-actions">
       <button id="retry-btn" class="primary-btn">もう一度</button>
       <button id="copy-btn" class="secondary-btn">結果をコピー</button>
@@ -187,7 +248,7 @@
 
   <div id="toast-msg" class="toast"></div>
 
-</div><!-- /app -->
+</div>
 <script src="card-mode.js" defer></script>
 </body>
 </html>
