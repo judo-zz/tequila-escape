@@ -103,7 +103,7 @@ const TELLS = {
   glass:   { text:'「グラス、減ってないなぁ……」', icon:'👀', observation:'みるくがグラスを見ている', prediction:'見張るかも' },
   excite:  { text:'「ねぇ、もっといこ？！」',       icon:'🙂', observation:'笑顔が深まった',            prediction:'乾杯かも' },
   bored:   { text:'「ふぅ……」',                     icon:'💧', observation:'息をついた',                prediction:'様子見かも' },
-  playful: { text:'「次は……どうしよっかな？」',     icon:'🎭', observation:'髪を触った',                prediction:'飲んだフリかも' },
+  playful: { text:'「次は……どうしよっかな？」',     icon:'💇‍♀️', observation:'髪を触った',                prediction:'飲んだフリかも' },
 };
 const TELL_IDS = ['glass', 'excite', 'bored', 'playful'];
 
@@ -131,7 +131,7 @@ function setCharFace(exprKey) {
   const charEl = $('character');
   const imgEl  = $('char-art');
   // data-face drives CSS aura; exprKey is now the direct image key
-  const faceMap = { tuzyou:'normal', utagai:'doubt', bikkuri:'smile', horoyoi:'mood', fuman:'normal', deisui:'normal' };
+  const faceMap = { tuzyou:'normal', utagai:'doubt', bikkuri:'smile', horoyoi:'mood', fuman:'cold', deisui:'mood' };
   if (charEl) charEl.dataset.face = faceMap[exprKey] || 'normal';
   const src = CHAR_IMAGES[exprKey];
   if (imgEl && src && imgEl.src !== new URL(src, document.baseURI).href) {
@@ -422,9 +422,9 @@ function enterReveal() {
   // milkCard was decided in TELL_PHASE; store it now for RESOLVE
   state.milkCard = state.tell.willPlay;
 
-  // Switch label to VS for dramatic reveal
+  // Hide vs-label during reveal so card names take center stage
   const vsEl = $('vs-label');
-  if (vsEl) vsEl.textContent = 'VS';
+  if (vsEl) vsEl.classList.add('reveal-hide');
 
   const playerEl = $('card-player');
   const milkEl   = $('card-milk');
@@ -441,6 +441,12 @@ function enterReveal() {
   setFlipFace(playerEl, CARD_IMAGES.player[state.playerCard], pCard.icon, pCard.label);
   setFlipFace(milkEl,   CARD_IMAGES.milk[state.milkCard],   mCard.icon, mCard.milkLabel);
 
+  // Show card names in caption area
+  const pCapEl = playerEl.parentElement.querySelector('.reveal-caption');
+  const mCapEl = milkEl.parentElement.querySelector('.reveal-caption');
+  if (pCapEl) pCapEl.textContent = pCard.label;
+  if (mCapEl) mCapEl.textContent = mCard.milkLabel;
+
   // Flip, then chain to RESOLVE — nested setTimeout keeps the two phases coupled
   setTimeout(() => {
     playerEl.classList.add('flipped');
@@ -454,9 +460,15 @@ function enterReveal() {
 function clearReveal() {
   $('card-player').classList.remove('flipped');
   $('card-milk').classList.remove('flipped');
-  // Reset vs-label for next turn
+  // Restore vs-label and reset captions
   const vsEl = $('vs-label');
-  if (vsEl) vsEl.textContent = 'せーの！';
+  if (vsEl) vsEl.classList.remove('reveal-hide');
+  const playerEl = $('card-player');
+  const milkEl   = $('card-milk');
+  const pCapEl = playerEl.parentElement.querySelector('.reveal-caption');
+  const mCapEl = milkEl.parentElement.querySelector('.reveal-caption');
+  if (pCapEl) pCapEl.textContent = 'あなた';
+  if (mCapEl) mCapEl.textContent = 'みるく';
 }
 
 function enterResolve() {
