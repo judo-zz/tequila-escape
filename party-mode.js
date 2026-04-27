@@ -87,6 +87,7 @@ function initState(playerName, cpuCount, maxRounds) {
     forcedDrawPending: null, // { sourcePlayerName } — 人間が手動で引く待ち状態
     hasDrawnThisTurn: false,
     lastEvent: EVENT_COPY.waiting,
+    eventSerial: 0,
     // SETUP | PLAYER_TURN | CPU_TURN | RESOLVING | FORCED_DRAW | RESULT
     phase: 'SETUP',
     log:   [],
@@ -144,10 +145,12 @@ function addLog(msg, cls = '') {
 
 function setLastEvent(kind, playerName, title = null, copy = null) {
   const base = EVENT_COPY[kind] || EVENT_COPY.action;
+  state.eventSerial++;
   state.lastEvent = {
     ...base,
     title: title || base.title,
     copy: copy || (playerName ? `${playerName} — ${base.copy}` : base.copy),
+    serial: state.eventSerial,
   };
 }
 
@@ -751,6 +754,13 @@ function renderEventCard() {
   $('event-card-kicker').textContent = event.kicker;
   $('event-card-title').textContent = event.title;
   $('event-card-copy').textContent = event.copy;
+  const serial = String(event.serial || 0);
+  if (card.dataset.eventSerial !== serial) {
+    card.dataset.eventSerial = serial;
+    card.classList.remove('is-flipping');
+    void card.offsetWidth;
+    card.classList.add('is-flipping');
+  }
 }
 
 function renderHand() {
@@ -818,8 +828,13 @@ function renderActionBar() {
   drawBtn.disabled = !isPlayerTurn && !isForcedDraw;
   endBtn.disabled  = !isPlayerTurn || !state.hasDrawnThisTurn;
   badge.textContent = state.deck.length > 0 ? `残${state.deck.length}` : '空';
+  badge.setAttribute('aria-label', state.deck.length > 0 ? `山札 残り ${state.deck.length} 枚` : '山札は空');
 
-  // FORCED_DRAW 中はボタンラベルで状況を明示
+  // 古いDOMの直書きテキストが残ってもボタン文言が二重にならないよう整える。
+  for (const node of [...drawBtn.childNodes]) {
+    if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) node.remove();
+  }
+
   const drawLabel = $('draw-label-text');
   if (drawLabel) drawLabel.textContent = isForcedDraw ? '引かされる……' : '山札を引く';
 }
@@ -970,6 +985,7 @@ function restartGame() {
 document.addEventListener('DOMContentLoaded', () => {
   $('start-btn').addEventListener('click', startGame);
   $('retry-btn').addEventListener('click', restartGame);
+  $('top-btn').addEventListener('click', restartGame);
   $('draw-btn').addEventListener('click', onDrawClick);
   $('end-turn-btn').addEventListener('click', onEndTurnClick);
   $('peek-close').addEventListener('click', () => $('peek-overlay').classList.add('hidden'));
