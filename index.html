@@ -2,147 +2,195 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="テキーラから逃げろ！ カードモードかパーティモードを選んで遊ぶブラウザゲーム。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://judo-zz.github.io/tequila-escape/">
+  <meta property="og:title" content="テキーラから逃げろ！">
+  <meta property="og:description" content="カードモードかパーティモードを選んで遊ぶ。">
+  <meta property="og:image" content="https://judo-zz.github.io/tequila-escape/assets/title_logo_card_mode.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="テキーラから逃げろ！">
+  <meta name="twitter:description" content="カードモードかパーティモードを選んで遊ぶ。">
+  <meta name="twitter:image" content="https://judo-zz.github.io/tequila-escape/assets/title_logo_card_mode.png">
   <title>テキーラから逃げろ！</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="canonical" href="https://judo-zz.github.io/tequila-escape/">
+  <link rel="icon" href="assets/title_logo_card_mode_cutout.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/title_logo_card_mode.png">
+  <style>
+    :root {
+      --bg: #0d0008;
+      --panel: rgba(28, 4, 18, 0.82);
+      --text: #fffdf7;
+      --pink: #ff2d6f;
+      --pink-light: #ff7eb3;
+      --cyan: #38cfe7;
+      --yellow: #ffd14f;
+      --ink: #1a0a12;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100svh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 70% 18%, rgba(255, 45, 111, 0.28), transparent 32%),
+        radial-gradient(circle at 18% 78%, rgba(56, 207, 231, 0.12), transparent 28%),
+        linear-gradient(180deg, #16000d 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    }
+
+    main {
+      width: min(100%, 460px);
+      display: grid;
+      gap: 22px;
+      text-align: center;
+    }
+
+    .logo {
+      width: min(100%, 390px);
+      margin: 0 auto;
+      filter:
+        drop-shadow(0 14px 20px rgba(0, 0, 0, 0.58))
+        drop-shadow(0 0 26px rgba(255, 45, 111, 0.24));
+    }
+
+    .panel {
+      padding: 24px 18px 20px;
+      border: 3px solid rgba(255, 253, 247, 0.12);
+      border-radius: 26px;
+      background: var(--panel);
+      box-shadow:
+        0 18px 0 rgba(0, 0, 0, 0.32),
+        0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+    }
+
+    h1 {
+      margin: 0 0 5px;
+      font-size: clamp(1.5rem, 6vw, 2.1rem);
+      line-height: 1.18;
+      letter-spacing: 0.04em;
+      text-shadow: 3px 3px 0 #000;
+    }
+
+    p {
+      margin: 0 0 18px;
+      color: rgba(255, 253, 247, 0.72);
+      font-size: 0.88rem;
+      line-height: 1.7;
+    }
+
+    .mode-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .mode-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 76px;
+      padding: 14px 18px;
+      border: 3px solid #0b0508;
+      border-radius: 22px;
+      color: var(--text);
+      text-decoration: none;
+      box-shadow:
+        0 8px 0 rgba(0, 0, 0, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
+      transition: transform 0.14s ease, filter 0.14s ease;
+    }
+
+    .mode-btn:active {
+      transform: translateY(4px);
+      box-shadow:
+        0 4px 0 rgba(0, 0, 0, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+
+    .mode-btn:focus-visible {
+      outline: 3px solid var(--yellow);
+      outline-offset: 4px;
+    }
+
+    .mode-card {
+      background: linear-gradient(135deg, var(--pink-light), var(--pink) 50%, #b8004d);
+    }
+
+    .mode-party {
+      background: linear-gradient(135deg, var(--yellow), #ff7a2d 48%, var(--pink));
+      color: var(--ink);
+    }
+
+    .mode-text {
+      display: grid;
+      gap: 3px;
+      text-align: left;
+    }
+
+    .mode-title {
+      font-size: 1.24rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+    }
+
+    .mode-desc {
+      font-size: 0.75rem;
+      font-weight: 800;
+      opacity: 0.82;
+    }
+
+    .mode-arrow {
+      flex: 0 0 auto;
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      font-size: 1.5rem;
+      font-weight: 900;
+    }
+
+    .disclaimer {
+      margin: 18px 0 0;
+      color: rgba(255, 253, 247, 0.48);
+      font-size: 0.68rem;
+    }
+  </style>
 </head>
 <body>
-<div id="app">
-
-  <!-- ─── TITLE ─── -->
-  <div id="title-screen" class="screen active">
-    <h1>テキーラから逃げろ！</h1>
-    <div class="title-sub">飲むな。バレるな。空気だけは守れ。</div>
-    <div class="title-desc">コンカフェで始まった突然の乾杯タイム。
-飲めば酔う。逃げれば疑われる。黙れば空気が死ぬ。
-10ターン、生き残れ。</div>
-    <button id="start-btn" class="primary-btn">乾杯する</button>
-    <button id="howto-btn" class="secondary-btn">遊び方</button>
-    <div class="title-disclaimer">※このゲームはフィクションです。実際の飲酒は無理せず、自分のペースで。</div>
-  </div>
-
-  <!-- ─── GAME ─── -->
-  <div id="game-screen" class="screen">
-    <div class="hud">
-      <div class="hud-turn">TURN <strong id="turn-display">1 / 10</strong></div>
-      <div class="hud-grid">
-        <div class="hud-cell">
-          <div class="hud-row">
-            <span class="hud-label">🍸酔い</span>
-            <div class="gauge"><div id="drunk-fill" class="gauge-fill drunk"></div></div>
-            <span id="drunk-value" class="gauge-value">0</span>
-            <span id="drunk-delta" class="gauge-delta"></span>
-          </div>
-        </div>
-        <div class="hud-cell">
-          <div class="hud-row">
-            <span id="cast-label" class="hud-label"></span>
-            <div class="gauge"><div id="castDrunk-fill" class="gauge-fill cast"></div></div>
-            <span id="castDrunk-value" class="gauge-value">0</span>
-            <span id="castDrunk-delta" class="gauge-delta"></span>
-          </div>
-          <div id="cast-status" class="cast-status"></div>
-        </div>
-        <div class="hud-cell">
-          <div class="hud-row">
-            <span class="hud-label">👀疑惑</span>
-            <div class="gauge"><div id="suspicion-fill" class="gauge-fill suspicion"></div></div>
-            <span id="suspicion-value" class="gauge-value">20</span>
-            <span id="suspicion-delta" class="gauge-delta"></span>
-          </div>
-        </div>
-        <div class="hud-cell">
-          <div class="hud-row">
-            <span class="hud-label">✨空気</span>
-            <div class="gauge"><div id="tension-fill" class="gauge-fill tension"></div></div>
-            <span id="tension-value" class="gauge-value">60</span>
-            <span id="tension-delta" class="gauge-delta"></span>
-          </div>
-        </div>
+  <main>
+    <img class="logo" src="assets/title_logo_card_mode_cutout.png" alt="テキーラから逃げろ！">
+    <section class="panel" aria-labelledby="mode-title">
+      <h1 id="mode-title">モードを選ぶ</h1>
+      <p>ひとりで読み合うか、みんなで押し付け合うか。</p>
+      <div class="mode-list">
+        <a class="mode-btn mode-card" href="card-mode.html">
+          <span class="mode-text">
+            <span class="mode-title">CARD MODE</span>
+            <span class="mode-desc">みるくと10ターンの読み合い</span>
+          </span>
+          <span class="mode-arrow" aria-hidden="true">›</span>
+        </a>
+        <a class="mode-btn mode-party" href="party-mode.html">
+          <span class="mode-text">
+            <span class="mode-title">PARTY MODE</span>
+            <span class="mode-desc">友達と飲ませ合うパーティ戦</span>
+          </span>
+          <span class="mode-arrow" aria-hidden="true">›</span>
+        </a>
       </div>
-    </div>
-
-    <div id="scene-card" class="scene-card">
-      <div id="scene-icon" class="scene-icon">🥃</div>
-      <div class="scene-info">
-        <div id="scene-status" class="scene-status">いつもの乾杯ムード</div>
-        <div id="scene-eff" class="scene-eff">効果：補正なし</div>
-        <div id="scene-rec" class="scene-rec">状況を見て選ぼう</div>
-      </div>
-      <div class="judge-timer-track">
-        <div id="judge-timer-bar" class="judge-timer-bar"></div>
-      </div>
-    </div>
-
-    <div class="stage">
-      <div id="speech" class="speech">せーのでいこ？</div>
-      <div class="character-name">みるく</div>
-      <div class="character">
-        <img class="char-art" src="assets/milk.png" alt="" aria-hidden="true"
-             onload="this.classList.add('loaded')"
-             onerror="this.style.display='none'">
-        <div class="char-face" aria-hidden="true">
-          <div class="char-eye left"></div>
-          <div class="char-eye right"></div>
-          <div class="char-cheek left"></div>
-          <div class="char-cheek right"></div>
-          <div class="char-mouth"></div>
-        </div>
-        <span class="char-base" aria-hidden="true">🥃</span>
-        <span class="char-eyes" aria-hidden="true">👁👁</span>
-        <span class="expression-icon" aria-hidden="true">✨</span>
-      </div>
-      <div class="sparkles" aria-hidden="true">
-        <span class="sparkle">✨</span><span class="sparkle">✨</span>
-        <span class="sparkle">⭐</span><span class="sparkle">✨</span>
-        <span class="sparkle">💖</span><span class="sparkle">✨</span>
-      </div>
-    </div>
-
-    <div id="action-result" class="action-result"></div>
-    <div id="commands" class="commands"></div>
-
-    <div id="cutin" aria-live="polite"><div class="cutin-text">今、飲んでなかったよね？</div></div>
-    <div id="sfx-effect"><span class="sfx-text"></span></div>
-  </div>
-
-  <!-- ─── RESULT ─── -->
-  <div id="result-screen" class="screen">
-    <div class="result-frame">
-      <div id="result-verdict" class="result-verdict">— RESULT —</div>
-      <div id="result-title" class="result-title-big"></div>
-      <div id="result-oneliner" class="result-oneliner"></div>
-      <div id="lose-note" class="lose-note" hidden>リアルでは、飲まない選択もちゃんと大事。</div>
-      <div class="result-score-label">SCORE</div>
-      <div id="result-score" class="result-score-big">0</div>
-      <div id="result-stats" class="result-stats-card"></div>
-    </div>
-    <div class="result-actions">
-      <button id="retry-btn" class="primary-btn">もう一度乾杯する</button>
-      <button id="copy-btn" class="secondary-btn">結果をコピー</button>
-    </div>
-  </div>
-
-  <!-- ─── TUTORIAL ─── -->
-  <div id="tutorial-overlay" class="tutorial-overlay" hidden>
-    <div class="tutorial-card">
-      <h2>遊び方</h2>
-      <ul>
-        <li>10ターン生き残れ</li>
-        <li>酔い100・疑惑100・空気0で終了</li>
-        <li>みるく100で完全勝利</li>
-        <li>今の空気を読んで、行動を選ぼう</li>
-      </ul>
-      <button id="tutorial-ok" class="primary-btn">わかった</button>
-    </div>
-  </div>
-
-  <div id="toast" class="toast"></div>
-</div>
-
-<script src="main.js" defer></script>
+      <p class="disclaimer">※このゲームはフィクションです。実際の飲酒は無理せず、自分のペースで。</p>
+    </section>
+  </main>
 </body>
 </html>

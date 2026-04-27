@@ -3,7 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="みるくと同時にカードを出して、飲むか、ごまかすか、見抜くか、逃げ切るか。10ターンの読み合いカードゲーム。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://judo-zz.github.io/tequila-escape/card-mode.html">
+  <meta property="og:title" content="テキーラから逃げろ！ CARD MODE">
+  <meta property="og:description" content="飲むか、ごまかすか、見抜くか、逃げ切るか。10ターンの読み合いを始める。">
+  <meta property="og:image" content="https://judo-zz.github.io/tequila-escape/assets/title_logo_card_mode.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="テキーラから逃げろ！ CARD MODE">
+  <meta name="twitter:description" content="飲むか、ごまかすか、見抜くか、逃げ切るか。10ターンの読み合いを始める。">
+  <meta name="twitter:image" content="https://judo-zz.github.io/tequila-escape/assets/title_logo_card_mode.png">
   <title>カードモード — テキーラから逃げろ！</title>
+  <link rel="icon" href="assets/title_logo_card_mode_cutout.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/title_logo_card_mode.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
@@ -22,81 +34,99 @@
       <span class="ibg-spark s4">✦</span>
       <span class="ibg-spark s5">✧</span>
       <span class="ibg-spark s6">♥</span>
+      <span class="ibg-spark s7">♥</span>
+      <span class="ibg-spark s8">✦</span>
+      <span class="ibg-spark s9">♥</span>
     </div>
 
-    <!-- character art -->
-    <img
-      src="assets/tuzyou.png"
-      alt=""
-      class="intro-char"
-      aria-hidden="true">
+    <!-- hero row: character left + title right -->
+    <div class="intro-hero">
+      <img
+        src="assets/intro_milk_crop.png"
+        alt=""
+        class="intro-char"
+        aria-hidden="true">
 
-    <!-- scrollable content layer -->
-    <div class="intro-layer">
-
-      <!-- speech bubble -->
-      <div class="intro-speech" aria-label="みるくと駆け引き勝負">
-        みるくと駆け引き勝負！<span class="speech-heart">♥</span>
-      </div>
-
-      <!-- title block -->
-      <div class="intro-title-block">
-        <p class="intro-sub">テキーラから</p>
-        <h1 class="intro-title-main">逃げろ！</h1>
-        <div class="intro-card-mode-badge">CARD MODE</div>
-      </div>
-
-      <!-- spacer: gives room so content starts below hero area -->
-      <div class="intro-hero-spacer" aria-hidden="true"></div>
-
-      <!-- below-hero content -->
-      <div class="intro-bottom">
-
-        <p class="intro-copy">
-          みるくと同時にカードを出して、<br>
-          飲むか、ごまかすか、見抜くか、逃げ切るか。<br>
-          10ターンの読み合いを始める。
-        </p>
-
-        <div class="intro-preview" aria-hidden="true">
-          <div class="preview-card" data-card="toast">
-            <span class="preview-icon">🥂</span>
-            <span class="preview-name">乾杯する</span>
-            <span class="preview-desc">酔いUP<br>疑惑DOWN</span>
-          </div>
-          <div class="preview-card" data-card="fake">
-            <span class="preview-icon">🎭</span>
-            <span class="preview-name">飲んだフリ</span>
-            <span class="preview-desc">ごまかして<br>酔いを回避</span>
-          </div>
-          <div class="preview-card" data-card="watch">
-            <span class="preview-icon">👁</span>
-            <span class="preview-name">見張る</span>
-            <span class="preview-desc">相手のフリを<br>見抜く！</span>
-          </div>
-          <div class="preview-card" data-card="chaser">
-            <span class="preview-icon">💧</span>
-            <span class="preview-name">逃げる</span>
-            <span class="preview-desc">チェイサーで<br>酔いを回復</span>
+      <div class="intro-hero-right">
+        <div class="intro-speech" aria-label="みるくと駆け引き勝負">
+          みるくと駆け引き勝負！<span class="speech-heart">♥</span>
+        </div>
+        <div class="intro-title-block">
+          <img
+            src="assets/title_logo_card_mode_cutout.png"
+            alt="テキーラから逃げろ！ CARD MODE"
+            class="intro-title-logo">
+          <div class="intro-title-fallback" aria-hidden="true">
+            <p class="intro-sub">テキーラから</p>
+            <h1 class="intro-title-main">逃げろ！</h1>
+            <div class="intro-card-mode-badge">CARD MODE</div>
           </div>
         </div>
-
-        <div class="intro-notes">
-          <span>♥ 酔いすぎず</span>
-          <span>♥ 疑われすぎず</span>
-          <span>♥ 空気を冷やさず</span>
-        </div>
-
-        <button id="start-btn" class="intro-start-btn">
-          <span class="btn-spark">✦</span>
-          対戦開始！
-          <span class="btn-spark">✦</span>
-        </button>
-
-        <a href="index.html" class="link-back">── 通常モードへ ──</a>
-
       </div>
     </div>
+
+    <!-- scrollable content area -->
+    <div class="intro-scroll">
+
+      <p class="intro-copy">
+        みるくと同時にカードを出して、<br>
+        飲むか、ごまかすか、見抜くか、逃げ切るか。<br>
+        10ターンの読み合いを始める。
+      </p>
+
+      <div class="intro-preview">
+        <figure class="preview-card-wrap">
+          <img src="assets/ware_nomu.PNG" alt="" class="preview-card-img" aria-hidden="true">
+          <figcaption class="preview-card-cap">
+            <span class="preview-card-name">乾杯する</span>
+            <span class="preview-card-desc">酔いUP / 疑惑DOWN</span>
+          </figcaption>
+        </figure>
+        <figure class="preview-card-wrap">
+          <img src="assets/ware_fake.PNG" alt="" class="preview-card-img" aria-hidden="true">
+          <figcaption class="preview-card-cap">
+            <span class="preview-card-name">飲んだフリ</span>
+            <span class="preview-card-desc">ごまかして回避</span>
+          </figcaption>
+        </figure>
+        <figure class="preview-card-wrap">
+          <img src="assets/ware_kanshi.PNG" alt="" class="preview-card-img" aria-hidden="true">
+          <figcaption class="preview-card-cap">
+            <span class="preview-card-name">見張る</span>
+            <span class="preview-card-desc">フリを見抜く！</span>
+          </figcaption>
+        </figure>
+        <figure class="preview-card-wrap">
+          <img src="assets/ware_tyeisa-.PNG" alt="" class="preview-card-img" aria-hidden="true">
+          <figcaption class="preview-card-cap">
+            <span class="preview-card-name">逃げる</span>
+            <span class="preview-card-desc">酔いを回復</span>
+          </figcaption>
+        </figure>
+      </div>
+
+      <div class="intro-notes">
+        <span>♥ 酔いすぎず</span>
+        <span>♥ 疑われすぎず</span>
+        <span>♥ 空気を冷やさず</span>
+      </div>
+
+      <p class="intro-disclaimer">
+        ※このゲームはフィクションです。実際の飲酒は無理せず、自分のペースで。
+      </p>
+
+    </div>
+
+    <!-- CTA: always visible at screen bottom -->
+    <div class="intro-cta">
+      <button id="start-btn" class="intro-start-btn">
+        <span class="btn-spark">✦</span>
+        対戦開始！
+        <span class="btn-spark">✦</span>
+      </button>
+      <a href="party-mode.html" class="link-back">── パーティモードへ ──</a>
+    </div>
+
   </div>
 
   <div id="game-screen" class="screen">
@@ -146,8 +176,10 @@
         <div class="hud-meta">
           <div class="hud-turnline">TURN <strong id="turn-display">1 / 10</strong></div>
           <div id="act-badge" class="act-badge">ACT 1 / 探り合い</div>
+          <button id="top-btn" class="top-btn" type="button" aria-label="トップに戻る">TOP</button>
         </div>
       </div>
+      <div id="turn-history" class="turn-history" aria-label="ターン履歴"></div>
     </header>
 
     <main class="stage">
@@ -235,35 +267,75 @@
       </div>
 
       <div class="hand-grid">
-        <button class="card-slot" data-card="toast" aria-label="乾杯する 残り4枚" disabled>
-          <span class="card-icon">🥂</span>
-          <span class="card-label">乾杯する</span>
-          <span class="card-hint">疑惑↓ 酔い↑</span>
-          <span class="card-count">×4</span>
+        <button class="card-slot" data-card="toast" aria-label="乾杯する 無限" disabled>
+          <img src="assets/ware_nomu.PNG" alt="" class="card-img-thumb" aria-hidden="true">
+          <div class="card-text">
+            <span class="card-label">乾杯する</span>
+            <span class="card-hint">疑惑↓ 酔い↑</span>
+          </div>
+          <span class="card-count">∞</span>
         </button>
 
         <button class="card-slot" data-card="fake" aria-label="飲んだフリ 残り3枚" disabled>
-          <span class="card-icon">🎭</span>
-          <span class="card-label">飲んだフリ</span>
-          <span class="card-hint">バレると大事故</span>
+          <img src="assets/ware_fake.PNG" alt="" class="card-img-thumb" aria-hidden="true">
+          <div class="card-text">
+            <span class="card-label">飲んだフリ</span>
+            <span class="card-hint">バレると大事故</span>
+          </div>
           <span class="card-count">×3</span>
         </button>
 
         <button class="card-slot" data-card="watch" aria-label="見張る 残り2枚" disabled>
-          <span class="card-icon">👁</span>
-          <span class="card-label">見張る</span>
-          <span class="card-hint">フリをカウンター</span>
+          <img src="assets/ware_kanshi.PNG" alt="" class="card-img-thumb" aria-hidden="true">
+          <div class="card-text">
+            <span class="card-label">見張る</span>
+            <span class="card-hint">フリをカウンター</span>
+          </div>
           <span class="card-count">×2</span>
         </button>
 
         <button class="card-slot" data-card="chaser" aria-label="チェイサー 残り2枚" disabled>
-          <span class="card-icon">💧</span>
-          <span class="card-label">チェイサー</span>
-          <span class="card-hint">酔い↓ 場冷え注意</span>
+          <img src="assets/ware_tyeisa-.PNG" alt="" class="card-img-thumb" aria-hidden="true">
+          <div class="card-text">
+            <span class="card-label">チェイサー</span>
+            <span class="card-hint">酔い↓ 場冷え注意</span>
+          </div>
           <span class="card-count">×2</span>
         </button>
       </div>
     </section>
+  </div>
+
+  <div id="impact-layer" class="impact-layer" aria-hidden="true">
+    <div class="impact-wash"></div>
+    <div id="commit-card" class="commit-card">
+      <img id="commit-card-img" class="commit-card-img" alt="">
+      <span id="commit-card-label" class="commit-card-label"></span>
+    </div>
+    <div id="reaction-burst" class="reaction-burst">
+      <img id="reaction-img" class="reaction-img" alt="">
+    </div>
+    <div id="match-cutin" class="match-cutin">
+      <span id="match-cutin-kicker" class="match-cutin-kicker"></span>
+      <strong id="match-cutin-title" class="match-cutin-title"></strong>
+      <span id="match-cutin-copy" class="match-cutin-copy"></span>
+    </div>
+    <div id="bust-cutin" class="bust-cutin">
+      <img id="bust-cutin-img" class="bust-cutin-img" alt="">
+      <div class="bust-cutin-copy">
+        <span class="bust-cutin-kicker">即死級事故</span>
+        <strong class="bust-cutin-title">バレた……！</strong>
+        <span class="bust-cutin-line">グラスの沈黙まで見られている。</span>
+      </div>
+    </div>
+    <div id="act-banner" class="act-banner">
+      <div class="act-banner-card">
+        <span id="act-banner-kicker" class="act-banner-kicker"></span>
+        <strong id="act-banner-title" class="act-banner-title"></strong>
+        <span id="act-banner-copy" class="act-banner-copy"></span>
+      </div>
+    </div>
+    <div class="danger-vignette"></div>
   </div>
 
   <div id="result-screen" class="screen">
@@ -274,9 +346,12 @@
         <div class="result-copy">
           <div class="result-kicker">対戦結果</div>
           <div id="result-title-big" class="result-title-big"></div>
+          <div id="result-title-badge" class="result-title-badge"></div>
         </div>
         <div id="result-card-img" class="result-card-img-wrap" aria-hidden="true"></div>
       </div>
+
+      <div id="result-achievements" class="result-achievements" aria-live="polite"></div>
 
       <div class="result-tabs" role="tablist">
         <button class="tab-btn active" data-tab="objective" role="tab" aria-selected="true">事実</button>
@@ -289,7 +364,7 @@
 
     <div class="result-actions">
       <button id="retry-btn" class="primary-btn">もう一度</button>
-      <button id="copy-btn" class="secondary-btn">結果をコピー</button>
+      <a id="post-x-btn" class="secondary-btn" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener noreferrer">Xでポスト</a>
     </div>
   </div>
 

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>お前が飲め！ — テキーラから逃げろ！</title>
+  <meta property="og:title" content="お前が飲め！ — テキーラから逃げろ！">
+  <meta property="og:description" content="友達と遊べる！ドリンクカードゲーム「テキーラから逃げろ！」のパーティモード。">
+  <meta property="og:image" content="assets/title_logo_card_mode.png">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="assets/title_logo_card_mode_cutout.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Kaisei+Opti:wght@700&family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="party-mode.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ── SETUP ── -->
+  <div id="setup-screen" class="screen active">
+    <div class="setup-bg" aria-hidden="true">
+      <span class="sbg-spark s1">✦</span>
+      <span class="sbg-spark s2">🍺</span>
+      <span class="sbg-spark s3">✧</span>
+      <span class="sbg-spark s4">🥃</span>
+      <span class="sbg-spark s5">✦</span>
+      <span class="sbg-spark s6">♥</span>
+    </div>
+
+    <div class="setup-header">
+      <div class="setup-title-sub">テキーラから逃げろ！</div>
+      <h1 class="setup-title-main">お前が飲め</h1>
+      <div class="setup-badge">PARTY MODE</div>
+    </div>
+
+    <div class="setup-body">
+      <div class="setup-section">
+        <label for="player-name" class="setup-label">あなたの名前</label>
+        <input id="player-name" class="setup-input" type="text" maxlength="8" placeholder="名前を入れて" autocomplete="off">
+      </div>
+
+      <div class="setup-section">
+        <label class="setup-label">CPU の人数</label>
+        <div class="cpu-count-row" role="group" aria-label="CPU の人数">
+          <button class="cpu-count-btn active" data-count="2" aria-pressed="true">CPU 2人</button>
+          <button class="cpu-count-btn" data-count="3" aria-pressed="false">CPU 3人</button>
+        </div>
+      </div>
+
+      <div class="setup-section">
+        <label class="setup-label">ラウンド数</label>
+        <div class="cpu-count-row" role="group" aria-label="ラウンド数">
+          <button class="round-btn" data-rounds="5" aria-pressed="false">5R</button>
+          <button class="round-btn active" data-rounds="10" aria-pressed="true">10R</button>
+          <button class="round-btn" data-rounds="15" aria-pressed="false">15R</button>
+        </div>
+      </div>
+
+      <div class="setup-rules">
+        <div class="rule-item">🃏 山札を引いてテキーラを避けろ</div>
+        <div class="rule-item">🍺 テキーラ → 酔いカウンター＋1</div>
+        <div class="rule-item">🏆 一番素面だったやつの勝ち</div>
+      </div>
+    </div>
+
+    <div class="setup-cta">
+      <button id="start-btn" class="party-start-btn">
+        <span class="btn-spark">✦</span>
+        乾杯スタート！
+        <span class="btn-spark">✦</span>
+      </button>
+      <a href="card-mode.html" class="link-back">カードモードへ</a>
+      <p class="intro-disclaimer">※このゲームはフィクションです。実際の飲酒は無理せず、自分のペースで。</p>
+    </div>
+  </div>
+
+  <!-- ── GAME ── -->
+  <div id="game-screen" class="screen">
+
+    <!-- HUD -->
+    <header class="party-hud">
+      <div class="hud-left">
+        <div class="hud-round">ROUND <strong id="round-display">1 / 10</strong></div>
+        <div id="deck-count" class="hud-deck">🃏 <span id="deck-num">40</span></div>
+        <div class="hud-deck">🍺 <span id="tequila-num">10</span></div>
+      </div>
+      <div id="effect-flags" class="effect-flags"></div>
+    </header>
+
+    <main class="party-board">
+      <!-- Players row -->
+      <div id="players-row" class="players-row"></div>
+
+      <!-- Stage: whose turn / log -->
+      <div class="game-stage">
+        <div id="turn-banner" class="turn-banner">あなたのターン</div>
+        <div class="deck-scene" aria-hidden="true">
+          <div class="deck-pile">
+            <img src="assets/aite_ura.PNG" alt="">
+          </div>
+          <div id="event-card" class="event-card event-waiting">
+            <span id="event-card-kicker" class="event-card-kicker">NEXT DRAW</span>
+            <strong id="event-card-title" class="event-card-title">山札</strong>
+            <span id="event-card-copy" class="event-card-copy">一枚引くまで、運命は伏せられている。</span>
+          </div>
+          <div class="discard-pile">
+            <img src="assets/ware_ura.PNG" alt="">
+            <span>捨て札</span>
+          </div>
+        </div>
+        <div id="game-log" class="game-log" aria-live="polite" aria-atomic="false"></div>
+      </div>
+    </main>
+
+    <!-- Hand (visible only during player's turn) -->
+    <div id="hand-area" class="hand-area hidden">
+      <div class="hand-head">
+        <span class="hand-title">手札</span>
+        <span id="hand-subtitle" class="hand-subtitle">カードを使うか、山札を引く</span>
+      </div>
+      <div id="hand-cards" class="hand-cards"></div>
+    </div>
+
+    <!-- Action bar -->
+    <div id="action-bar" class="action-bar">
+      <button id="draw-btn" class="draw-btn" disabled>
+        <span id="draw-label-text">山札を引く</span>
+        <span class="draw-count-badge" id="draw-badge"></span>
+      </button>
+      <button id="end-turn-btn" class="end-turn-btn" disabled>ターン終了</button>
+    </div>
+
+    <!-- Peek overlay -->
+    <div id="peek-overlay" class="peek-overlay hidden" aria-live="polite">
+      <div class="peek-box">
+        <div class="peek-label">山札の一番上</div>
+        <div id="peek-card" class="peek-card"></div>
+        <button id="peek-close" class="peek-close-btn">閉じる</button>
+      </div>
+    </div>
+
+    <!-- Target select overlay -->
+    <div id="target-overlay" class="target-overlay hidden" aria-live="polite">
+      <div class="target-box">
+        <div class="target-label" id="target-label">誰に使う？</div>
+        <div id="target-list" class="target-list"></div>
+        <button id="target-cancel" class="target-cancel-btn">キャンセル</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── RESULT ── -->
+  <div id="result-screen" class="screen">
+    <div class="result-frame">
+      <div class="result-verdict">— RESULT —</div>
+      <div id="result-title" class="result-title"></div>
+      <div id="result-party-summary" class="result-party-summary"></div>
+      <div id="result-rankings" class="result-rankings"></div>
+    </div>
+    <div class="result-actions">
+      <button id="retry-btn" class="party-start-btn">もう一度</button>
+      <a href="card-mode.html" class="link-back">カードモードへ</a>
+    </div>
+  </div>
+
+  <!-- SFX layer -->
+  <div id="sfx-layer" class="sfx-layer" aria-hidden="true">
+    <div id="sfx-text" class="party-sfx"></div>
+    <div id="cutin" class="party-cutin hidden">
+      <div id="cutin-kicker" class="cutin-kicker"></div>
+      <div id="cutin-title" class="cutin-title"></div>
+    </div>
+  </div>
+
+  <div id="sr-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+  <div id="toast-msg" class="toast"></div>
+
+</div>
+<script src="party-mode.js" defer></script>
+</body>
+</html>

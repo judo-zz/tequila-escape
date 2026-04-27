@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>テキーラから逃げろ！</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ─── TITLE ─── -->
+  <div id="title-screen" class="screen active">
+    <h1>テキーラから逃げろ！</h1>
+    <div class="title-sub">飲むな。バレるな。空気だけは守れ。</div>
+    <div class="title-desc">コンカフェで始まった突然の乾杯タイム。
+飲めば酔う。逃げれば疑われる。黙れば空気が死ぬ。
+10ターン、生き残れ。</div>
+    <button id="start-btn" class="primary-btn">乾杯する</button>
+    <button id="howto-btn" class="secondary-btn">遊び方</button>
+    <div class="title-disclaimer">※このゲームはフィクションです。実際の飲酒は無理せず、自分のペースで。</div>
+  </div>
+
+  <!-- ─── GAME ─── -->
+  <div id="game-screen" class="screen">
+    <div class="hud">
+      <div class="hud-turn">TURN <strong id="turn-display">1 / 10</strong></div>
+      <div class="hud-grid">
+        <div class="hud-cell">
+          <div class="hud-row">
+            <span class="hud-label">🍸酔い</span>
+            <div class="gauge"><div id="drunk-fill" class="gauge-fill drunk"></div></div>
+            <span id="drunk-value" class="gauge-value">0</span>
+            <span id="drunk-delta" class="gauge-delta"></span>
+          </div>
+        </div>
+        <div class="hud-cell">
+          <div class="hud-row">
+            <span id="cast-label" class="hud-label"></span>
+            <div class="gauge"><div id="castDrunk-fill" class="gauge-fill cast"></div></div>
+            <span id="castDrunk-value" class="gauge-value">0</span>
+            <span id="castDrunk-delta" class="gauge-delta"></span>
+          </div>
+          <div id="cast-status" class="cast-status"></div>
+        </div>
+        <div class="hud-cell">
+          <div class="hud-row">
+            <span class="hud-label">👀疑惑</span>
+            <div class="gauge"><div id="suspicion-fill" class="gauge-fill suspicion"></div></div>
+            <span id="suspicion-value" class="gauge-value">20</span>
+            <span id="suspicion-delta" class="gauge-delta"></span>
+          </div>
+        </div>
+        <div class="hud-cell">
+          <div class="hud-row">
+            <span class="hud-label">✨空気</span>
+            <div class="gauge"><div id="tension-fill" class="gauge-fill tension"></div></div>
+            <span id="tension-value" class="gauge-value">60</span>
+            <span id="tension-delta" class="gauge-delta"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="scene-card" class="scene-card">
+      <div id="scene-icon" class="scene-icon">🥃</div>
+      <div class="scene-info">
+        <div id="scene-status" class="scene-status">いつもの乾杯ムード</div>
+        <div id="scene-eff" class="scene-eff">効果：補正なし</div>
+        <div id="scene-rec" class="scene-rec">状況を見て選ぼう</div>
+      </div>
+      <div class="judge-timer-track">
+        <div id="judge-timer-bar" class="judge-timer-bar"></div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div id="speech" class="speech">せーのでいこ？</div>
+      <div class="character-name">みるく</div>
+      <div class="character">
+        <img class="char-art" src="assets/milk.png" alt="" aria-hidden="true"
+             onload="this.classList.add('loaded')"
+             onerror="this.style.display='none'">
+        <div class="char-face" aria-hidden="true">
+          <div class="char-eye left"></div>
+          <div class="char-eye right"></div>
+          <div class="char-cheek left"></div>
+          <div class="char-cheek right"></div>
+          <div class="char-mouth"></div>
+        </div>
+        <span class="char-base" aria-hidden="true">🥃</span>
+        <span class="char-eyes" aria-hidden="true">👁👁</span>
+        <span class="expression-icon" aria-hidden="true">✨</span>
+      </div>
+      <div class="sparkles" aria-hidden="true">
+        <span class="sparkle">✨</span><span class="sparkle">✨</span>
+        <span class="sparkle">⭐</span><span class="sparkle">✨</span>
+        <span class="sparkle">💖</span><span class="sparkle">✨</span>
+      </div>
+    </div>
+
+    <div id="action-result" class="action-result"></div>
+    <div id="commands" class="commands"></div>
+
+    <div id="cutin" aria-live="polite"><div class="cutin-text">今、飲んでなかったよね？</div></div>
+    <div id="sfx-effect"><span class="sfx-text"></span></div>
+  </div>
+
+  <!-- ─── RESULT ─── -->
+  <div id="result-screen" class="screen">
+    <div class="result-frame">
+      <div id="result-verdict" class="result-verdict">— RESULT —</div>
+      <div id="result-title" class="result-title-big"></div>
+      <div id="result-oneliner" class="result-oneliner"></div>
+      <div id="lose-note" class="lose-note" hidden>リアルでは、飲まない選択もちゃんと大事。</div>
+      <div class="result-score-label">SCORE</div>
+      <div id="result-score" class="result-score-big">0</div>
+      <div id="result-stats" class="result-stats-card"></div>
+    </div>
+    <div class="result-actions">
+      <button id="retry-btn" class="primary-btn">もう一度乾杯する</button>
+      <button id="copy-btn" class="secondary-btn">結果をコピー</button>
+    </div>
+  </div>
+
+  <!-- ─── TUTORIAL ─── -->
+  <div id="tutorial-overlay" class="tutorial-overlay" hidden>
+    <div class="tutorial-card">
+      <h2>遊び方</h2>
+      <ul>
+        <li>10ターン生き残れ</li>
+        <li>酔い100・疑惑100・空気0で終了</li>
+        <li>みるく100で完全勝利</li>
+        <li>今の空気を読んで、行動を選ぼう</li>
+      </ul>
+      <button id="tutorial-ok" class="primary-btn">わかった</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+</div>
+
+<script src="main.js" defer></script>
+</body>
+</html>
