@@ -1,7 +1,7 @@
 # テキーラから逃げろ！— 他AI向け引き継ぎ資料
 
 **ローカル起動**: `python3 -m http.server 8000` → `http://localhost:8000/`  
-**公開URL**: `https://judo-zz.github.io/tequila-escape/`  
+**公開URL**: `https://nagopine.net/tequila-escape/`
 **git管理**: あり（`main` ブランチ）  
 
 ---

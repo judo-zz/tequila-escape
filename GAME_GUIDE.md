@@ -184,7 +184,7 @@
 - **対応：** スマホ縦画面メイン、320px 幅でも崩れない
 - **保存：** ローカルストレージでチュートリアル既読のみ管理（スコアセーブなし）
 - **起動：** `python3 -m http.server 8765` → `http://localhost:8765/index.html`
-- **本番URL：** https://judo-zz.github.io/tequila-escape/
+- **本番URL：** https://nagopine.net/tequila-escape/
 
 ---
 
