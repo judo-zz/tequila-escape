@@ -96,7 +96,7 @@
           <img src="assets/optimized/ware_kanshi.webp" alt="" class="preview-card-img" aria-hidden="true" loading="lazy" decoding="async">
           <figcaption class="preview-card-cap">
             <span class="preview-card-name">見張る</span>
-            <span class="preview-card-desc">3Pでフリ狩り</span>
+            <span class="preview-card-desc">2Pでフリ狩り</span>
           </figcaption>
         </figure>
         <figure class="preview-card-wrap">
@@ -112,6 +112,7 @@
 
     <!-- CTA: always visible at screen bottom -->
     <div class="intro-cta">
+      <button id="ach-open-btn" class="ach-open-btn" type="button">🏆 実績一覧</button>
       <button id="start-btn" class="intro-start-btn">
         <span class="btn-spark">✦</span>
         対戦開始！
@@ -132,7 +133,7 @@
       <ul class="rule-help-list">
         <li><strong>乾杯</strong><span>HPを1払ってPを1作る</span></li>
         <li><strong>フェイク</strong><span>1Pで飲まずに守る</span></li>
-        <li><strong>監視</strong><span>3Pで相手のフェイクを刺す</span></li>
+        <li><strong>見張る</strong><span>2Pで相手のフェイクを刺す</span></li>
         <li><strong>チェイサー</strong><span>2PでHPを2回復</span></li>
       </ul>
       <p class="rule-help-note">みるくの予告を読んで、10ターン逃げ切る。</p>
@@ -155,6 +156,7 @@
         </div>
       </div>
       <div id="turn-history" class="turn-history" aria-label="ターン履歴"></div>
+      <div id="recent-history" class="recent-history" aria-label="直近の履歴" hidden></div>
     </header>
 
     <main class="stage">
@@ -191,6 +193,8 @@
               <span class="face-mouth"></span>
             </div>
           </div>
+
+          <div id="expr-bubble" class="expr-bubble" aria-hidden="true"></div>
 
           <div class="milk-caption">
             <span class="milk-name">みるく</span>
@@ -304,13 +308,13 @@
           <span class="card-blocked-reason" aria-hidden="true"></span>
         </button>
 
-        <button class="card-slot" data-card="watch" aria-label="見張る コスト3" disabled>
+        <button class="card-slot" data-card="watch" aria-label="見張る コスト2" disabled>
           <img src="assets/optimized/ware_kanshi.webp" alt="" class="card-img-thumb" aria-hidden="true" loading="lazy" decoding="async">
           <div class="card-text">
             <span class="card-label">見張る</span>
-            <span class="card-hint">3P / フェイク狩り</span>
+            <span class="card-hint">2P / フェイク狩り</span>
           </div>
-          <span class="card-count">3P</span>
+          <span class="card-count">2P</span>
           <span class="card-blocked-reason" aria-hidden="true"></span>
         </button>
 
@@ -391,6 +395,18 @@
   </div>
 
   <div id="toast-msg" class="toast"></div>
+
+  <!-- Achievement modal -->
+  <div id="ach-modal" class="ach-modal" hidden>
+    <div class="ach-modal-card">
+      <div class="ach-modal-head">
+        <span class="ach-modal-title">🏆 実績一覧</span>
+        <button id="ach-close-btn" class="ach-close-btn" type="button" aria-label="閉じる">×</button>
+      </div>
+      <p class="ach-modal-sub">解除した実績は記録されます</p>
+      <div id="ach-list" class="ach-list"></div>
+    </div>
+  </div>
 
 </div>
 <script src="card-mode.js" defer></script>

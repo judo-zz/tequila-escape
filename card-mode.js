@@ -2,24 +2,24 @@
 
 // ── Constants ──
 const MAX_TURNS           = 10;
-const FLIP_MS             = 680;
-const REVEAL_HOLD_MS      = 1450;
-const TELL_HOLD_MS        = 220;
-const COMMIT_MS           = 500;
+const FLIP_MS             = 580;
+const REVEAL_HOLD_MS      = 1200;
+const TELL_HOLD_MS        = 180;
+const COMMIT_MS           = 400;
 const REVEAL_PRE_FLIP_MS  = 600;
-const ACT_BANNER_MS       = 760;
+const ACT_BANNER_MS       = 640;
 const ACHIEVEMENT_STORAGE_KEY = 'tequilaEscape.cardMode.achievements.v2';
 const RULE_HELP_STORAGE_KEY   = 'tequilaEscape.cardMode.ruleHelp.v1';
 const LIFE_MAX            = 5;
-const POINT_MAX           = 6;
+const POINT_MAX           = 8;
 const CHASER_HEAL         = 2;
-const CARD_COSTS          = { toast:0, fake:1, watch:3, chaser:2 };
+const CARD_COSTS          = { toast:0, fake:1, watch:2, chaser:2 };
 
 // ── Card definitions ──
 const CARDS = {
   toast:  { id:'toast',  icon:'🥂', label:'乾杯する',   hint:'HP-1 / P+1',       milkLabel:'乾杯する' },
   fake:   { id:'fake',   icon:'🎭', label:'飲んだフリ', hint:'1P / HP守る',      milkLabel:'飲んだフリ' },
-  watch:  { id:'watch',  icon:'👁', label:'見張る',     hint:'3P / フェイク狩り',milkLabel:'見張る' },
+  watch:  { id:'watch',  icon:'👁', label:'見張る',     hint:'2P / フェイク狩り',milkLabel:'見張る' },
   chaser: { id:'chaser', icon:'💧', label:'チェイサー', hint:'2P / HP+2',        milkLabel:'チェイサー' },
 };
 const CARD_IDS = ['toast', 'fake', 'watch', 'chaser'];
@@ -34,6 +34,16 @@ const CHAR_IMAGES = {
   deisui:  'assets/optimized/deisui.webp',   // 泥酔
   kibishi: 'assets/optimized/kibishi.webp',  // 厳しい
   haiboku: 'assets/optimized/haiboku.webp',  // 敗北
+};
+
+// ── Expression reaction bubble text ──
+const EXPR_BUBBLE = {
+  utagai:  '…？',
+  bikkuri: '！',
+  horoyoi: '♥',
+  fuman:   '…',
+  deisui:  'ふわ',
+  kibishi: '！！',
 };
 
 // ── Card artwork map (ware_=player, aite_=milk) ──
@@ -90,13 +100,13 @@ const MATCH_EFFECTS = {
   'fake-fake':     { tone:'fake',   kicker:'同時に煙幕', title:'二人ともごまかした', copy:'笑顔の裏で読み合いが濃くなる。' },
   'fake-watch':    { tone:'bust',   kicker:'カウンター被弾', title:'大バレ！', copy:'フェイクを読まれてHPが削れる。' },
   'fake-chaser':   { tone:'sus',    kicker:'すれ違い', title:'軽く流れた', copy:'守ったが、相手は回復を選んでいた。' },
-  'watch-toast':   { tone:'watch',  kicker:'空振り', title:'相手は飲んだ', copy:'フェイクではない。監視は何も起こさない。' },
+  'watch-toast':   { tone:'watch',  kicker:'空振り', title:'相手は飲んだ', copy:'フェイクではない。見張りは何も起こさない。' },
   'watch-fake':    { tone:'counter',kicker:'読み勝ち', title:'カウンター！', copy:'フリの瞬間を捕まえた。' },
   'watch-watch':   { tone:'cold',   kicker:'膠着', title:'お互い無言', copy:'視線だけが卓上でぶつかる。' },
   'watch-chaser':  { tone:'cold',   kicker:'空振り', title:'チェイサーを見届けた', copy:'読みに行ったが、相手は回復を選んだ。' },
   'chaser-toast':  { tone:'chaser', kicker:'回復優先', title:'水でかわす', copy:'HPを戻して、次の読み合いへ残る。' },
   'chaser-fake':   { tone:'chaser', kicker:'水面下', title:'お互い水分補給', copy:'勝負は静かに次へ流れる。' },
-  'chaser-watch':  { tone:'sus',    kicker:'目撃', title:'水を見られた', copy:'相手の監視は空振り。HPだけ戻る。' },
+  'chaser-watch':  { tone:'sus',    kicker:'目撃', title:'水を見られた', copy:'相手の見張りは空振り。HPだけ戻る。' },
   'chaser-chaser': { tone:'freeze', kicker:'場冷え', title:'場が冷えた', copy:'グラスより先に会話が止まる。' },
 };
 
@@ -182,6 +192,15 @@ function setCharFace(exprKey) {
     imgEl.classList.remove('face-swap');
     void imgEl.offsetWidth;
     imgEl.classList.add('face-swap');
+
+    const bubble = $('expr-bubble');
+    const bubbleText = EXPR_BUBBLE[exprKey];
+    if (bubble && bubbleText) {
+      bubble.textContent = bubbleText;
+      bubble.classList.remove('expr-show');
+      void bubble.offsetWidth;
+      bubble.classList.add('expr-show');
+    }
   }
 }
 
@@ -261,6 +280,11 @@ function pickMilkCard() {
     weights.watch = Math.min(weights.watch + 0.9, 2.8);
   }
 
+  // Final turn: milk goes mostly gut-instinct (harder to counter-read)
+  if (state.turn >= MAX_TURNS && Math.random() < 0.6) {
+    return legal[Math.floor(Math.random() * legal.length)];
+  }
+
   // Wildcard: 10% chance to pick unpredictably so player can't pattern-exploit
   if (Math.random() < 0.1) {
     return legal[Math.floor(Math.random() * legal.length)];
@@ -299,8 +323,8 @@ function rollTell() {
 const initialState = () => ({
   fsm: 'INTRO',
   turn: 1,
-  player: { life:LIFE_MAX, point:0 },
-  milk:   { life:LIFE_MAX, point:0 },
+  player: { life:LIFE_MAX, point:1 },
+  milk:   { life:LIFE_MAX, point:1 },
   gauges: { drunk:LIFE_MAX, sus:0, tens:LIFE_MAX, mood:0 },
   playerCard: null,
   milkCard:   null,
@@ -482,11 +506,11 @@ function updateHandSubtitle() {
   if (state.player.point <= 0 && playable.length === 1) {
     el.textContent = 'まず乾杯でPを作る';
   } else if (state.player.point === 1 && actorCanPlay(state.player, 'fake')) {
-    el.textContent = 'フェイク可 / 監視に注意';
+    el.textContent = 'フェイク可 / 見張りに注意';
   } else if (state.player.life <= 2 && actorCanPlay(state.player, 'chaser')) {
     el.textContent = '回復するか、読み切るか';
   } else if (state.player.point >= CARD_COSTS.watch) {
-    el.textContent = '監視も選べる / 読み勝負';
+    el.textContent = '見張りも選べる / 読み勝負';
   } else if (actorCanPlay(state.player, 'chaser') && state.player.life < LIFE_MAX) {
     el.textContent = '守るか、Pを貯めるか';
   } else {
@@ -688,12 +712,12 @@ function resolveBattleTurn(playerCard, milkCard) {
   if (playerCounter) {
     addLife(state.milk, -2);
     addPoint(state.player, 1);
-    notes.push('あなたの監視成功！みるくHP-2 / あなたP+1');
+    notes.push('見張り成功！みるくHP-2 / あなたP+1');
   }
   if (milkCounter) {
     addLife(state.player, -2);
     addPoint(state.milk, 1);
-    notes.push('みるくの監視成功！あなたHP-2 / みるくP+1');
+    notes.push('みるくの見張り成功！あなたHP-2 / みるくP+1');
   }
 
   // Fake vs toast: stayed sober while milk drank → P+1 (offset cost, reward for correct read)
@@ -1029,8 +1053,8 @@ const ACHIEVEMENT_RULES = [
   { id:'ACH_MILK_KO', name:'飲ませ切り', description:'みるくのライフを0にした。', test:c=>c.endReason==='milk_life0' },
   { id:'ACH_POINT_WIN', name:'判定の支配者', description:'ポイント差で勝負を持っていった。', test:c=>c.endReason==='turn_limit'&&c.winner==='player'&&c.player.life===c.milk.life },
   { id:'ACH_PERFECT_HP', name:'無傷生還', description:'ライフ満タンで勝った。', test:c=>c.isWin&&c.player.life===LIFE_MAX },
-  { id:'ACH_COUNTER_HIT', name:'監視成功', description:'みるくのフェイクを監視で刺した。', test:()=>countMatch('watch','fake')>=1 },
-  { id:'ACH_GOT_COUNTERED', name:'監視された夜', description:'フェイクを監視で刺された。', test:()=>countMatch('fake','watch')>=1 },
+  { id:'ACH_COUNTER_HIT', name:'見張り成功', description:'みるくのフェイクを見張りで刺した。', test:()=>countMatch('watch','fake')>=1 },
+  { id:'ACH_GOT_COUNTERED', name:'見張られた夜', description:'フェイクを見張りで刺された。', test:()=>countMatch('fake','watch')>=1 },
   { id:'ACH_FIRST_TRUE', name:'みるくの夜', description:'飲む・かわす・読む。全部が噛み合った夜だった。', test:c=>c.ending==='true' },
   { id:'ACH_NO_FAKE_WIN', name:'正面突破', description:'ごまかしゼロで勝ち切った。これは純粋に強い。', test:c=>c.counts.fake===0&&c.isWin },
   { id:'ACH_ALL_FAKE', name:'嘘の全張り', description:'ごまかせるだけごまかした夜。バレなかった？', test:c=>c.counts.fake>=3 },
@@ -1240,7 +1264,7 @@ function buildPlayStyleLine({ topCard }) {
       '迷ったら前に出るプレイ。Pは貯まるが、HP管理が課題。',
     ],
     fake: [
-      '煙幕型。HPを守れるが、監視された瞬間に一気に崩れる。',
+      '煙幕型。HPを守れるが、見張られた瞬間に一気に崩れる。',
       '飲まずにターンを受け流すタイプ。読み負けだけは絶対に避けたい。',
       'ごまかしで勝負を伸ばすプレイ。P1の使いどころが大事。',
     ],
@@ -1314,7 +1338,7 @@ function buildMilkLine({ ending, topCard, decisive }) {
       '最後まで座ってたのはえらい。でも、HPかポイントのどっちかで少し届かなかったね。',
       '10ターン目まで行ったのに、最後の差でみるくの勝ち。惜しかったよ。',
       '負けたけど、崩れたわけじゃない。次はポイントの使いどころで変わると思う。',
-      'みるくの判定勝ち。途中のチェイサーか監視、ひとつ違えば逆だったかも。',
+      'みるくの判定勝ち。途中のチェイサーか見張り、ひとつ違えば逆だったかも。',
     ],
     true: [
       '今日のひと、ちゃんとノってくれた。また来てほしいな。',
@@ -1590,6 +1614,7 @@ function buildResultPostText() {
   const lines = [
     `テキーラから逃げろ！CARD MODE`,
     `「${s.resultTitle.name}」/ ${VERDICT_LABELS[s.ending]}`,
+    `${s.turn}ターン耐え抜いた！`,
     resultLine,
     `あなた HP${s.player.life} / P${s.player.point}　みるく HP${s.milk.life} / P${s.milk.point}`,
     `最多カード: ${top.icon} ${top.label}×${s.topCard.count}`,
@@ -1653,6 +1678,28 @@ function updateTurnHistory() {
     }
     el.appendChild(dot);
   }
+  updateRecentHistory();
+}
+
+function updateRecentHistory() {
+  const el = $('recent-history');
+  if (!el) return;
+  const last3 = state.history.slice(-3).reverse();
+  if (!last3.length) { el.hidden = true; return; }
+  el.hidden = false;
+  el.replaceChildren();
+  last3.forEach(h => {
+    const row = document.createElement('div');
+    row.className = 'rh-row';
+    const pDelta = h.outcome?.playerLifeDelta ?? 0;
+    const cls = pDelta <= -2 ? 'rh-bust' : pDelta < 0 ? 'rh-bad' : pDelta > 0 ? 'rh-good' : 'rh-neutral';
+    const delta = pDelta !== 0 ? `HP${pDelta > 0 ? '+' : ''}${pDelta}` : '—';
+    row.innerHTML =
+      `<span class="rh-turn">T${h.turn}</span>` +
+      `<span class="rh-cards">${CARDS[h.p].icon}${CARDS[h.m].icon}</span>` +
+      `<span class="rh-delta ${cls}">${delta}</span>`;
+    el.appendChild(row);
+  });
 }
 
 function setGauge(key, val, max = 100) {
@@ -1923,6 +1970,30 @@ function warmGameImagesSoon() {
   scheduleIdle(warmChunk);
 }
 
+// ── Achievement modal ──
+function openAchievements() {
+  const modal = $('ach-modal');
+  if (!modal) return;
+  const unlocked = loadUnlockedAchievements();
+  const list = $('ach-list');
+  list.replaceChildren();
+  ACHIEVEMENT_RULES.forEach(rule => {
+    const item = document.createElement('div');
+    const isUnlocked = unlocked.has(rule.id);
+    item.className = `ach-item ${isUnlocked ? 'ach-unlocked' : 'ach-locked'}`;
+    item.innerHTML = isUnlocked
+      ? `<strong class="ach-name">${escHtml(rule.name)}</strong><span class="ach-desc">${escHtml(rule.description)}</span>`
+      : `<strong class="ach-name">？？？</strong><span class="ach-desc">まだ解除されていない</span>`;
+    list.appendChild(item);
+  });
+  modal.hidden = false;
+}
+
+function closeAchievements() {
+  const modal = $('ach-modal');
+  if (modal) modal.hidden = true;
+}
+
 // ── Init ──
 function init() {
   // Mark all screens as hidden initially (intro is activated by setState('INTRO'))
@@ -1956,6 +2027,13 @@ function init() {
 
   // Retry
   $('retry-btn').addEventListener('click', resetToIntro);
+
+  // Achievement modal
+  $('ach-open-btn')?.addEventListener('click', openAchievements);
+  $('ach-close-btn')?.addEventListener('click', closeAchievements);
+  $('ach-modal')?.addEventListener('click', e => {
+    if (e.target === $('ach-modal')) closeAchievements();
+  });
 
   setState('INTRO');
 }
