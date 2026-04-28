@@ -32,6 +32,8 @@ const CHAR_IMAGES = {
   horoyoi: 'assets/optimized/horoyoi.webp',  // ほろ酔い
   fuman:   'assets/optimized/fuman.webp',    // 不満
   deisui:  'assets/optimized/deisui.webp',   // 泥酔
+  kibishi: 'assets/optimized/kibishi.webp',  // 厳しい
+  haiboku: 'assets/optimized/haiboku.webp',  // 敗北
 };
 
 // ── Card artwork map (ware_=player, aite_=milk) ──
@@ -84,7 +86,7 @@ const MATCH_EFFECTS = {
   'toast-fake':    { tone:'toast',  kicker:'片側だけ本気', title:'飲み切った', copy:'HPを払って、次の一手のPを作る。' },
   'toast-watch':   { tone:'sus',    kicker:'視線の中で', title:'見られながら乾杯', copy:'正面突破にも圧がある。' },
   'toast-chaser':  { tone:'cold',   kicker:'テンポ差', title:'空気が少し止まる', copy:'あなたのグラスだけが進んだ。' },
-  'fake-toast':    { tone:'fake',   kicker:'潜伏成功', title:'フェイク成功', copy:'場の熱だけを受け流した。' },
+  'fake-toast':    { tone:'fake',   kicker:'潜伏成功', title:'フェイク成功', copy:'場の隙を突いてP+1。相手の視線は読めているか？' },
   'fake-fake':     { tone:'fake',   kicker:'同時に煙幕', title:'二人ともごまかした', copy:'笑顔の裏で読み合いが濃くなる。' },
   'fake-watch':    { tone:'bust',   kicker:'カウンター被弾', title:'大バレ！', copy:'フェイクを読まれてHPが削れる。' },
   'fake-chaser':   { tone:'sus',    kicker:'すれ違い', title:'軽く流れた', copy:'守ったが、相手は回復を選んでいた。' },
@@ -163,11 +165,23 @@ function setCharFace(exprKey) {
   const charEl = $('character');
   const imgEl  = $('char-art');
   // data-face drives CSS aura; exprKey is now the direct image key
-  const faceMap = { tuzyou:'normal', utagai:'doubt', bikkuri:'smile', horoyoi:'mood', fuman:'cold', deisui:'mood' };
+  const faceMap = {
+    tuzyou:'normal',
+    utagai:'doubt',
+    bikkuri:'smile',
+    horoyoi:'mood',
+    fuman:'cold',
+    deisui:'mood',
+    kibishi:'doubt',
+    haiboku:'mood',
+  };
   if (charEl) charEl.dataset.face = faceMap[exprKey] || 'normal';
   const src = CHAR_IMAGES[exprKey];
   if (imgEl && src && imgEl.src !== new URL(src, document.baseURI).href) {
     imgEl.src = src;
+    imgEl.classList.remove('face-swap');
+    void imgEl.offsetWidth;
+    imgEl.classList.add('face-swap');
   }
 }
 
@@ -175,8 +189,10 @@ function setCharFace(exprKey) {
 function faceFromGauges() {
   const p = state.player;
   const m = state.milk;
+  if (m.life <= 1)       return 'deisui';
   if (m.life <= 2)       return 'bikkuri';
   if (p.life <= 2)       return 'utagai';
+  if (m.point >= 4)      return 'kibishi';
   if (m.point >= 3)      return 'fuman';
   if (p.point >= 3)      return 'horoyoi';
   return 'tuzyou';
@@ -185,11 +201,11 @@ function faceFromGauges() {
 // Pick reaction expression from this turn's deltas (called in RESOLVE)
 function faceFromDeltas(deltas, playerCard, milkCard, outcome = {}) {
   if (playerCard === 'watch' && milkCard === 'fake') return 'bikkuri'; // player caught milk's fake
-  if (playerCard === 'fake'  && milkCard === 'watch') return 'fuman'; // milk caught player's fake
+  if (playerCard === 'fake'  && milkCard === 'watch') return 'kibishi'; // milk caught player's fake
   if (outcome.milkLifeDelta <= -2) return 'bikkuri';
   if (outcome.playerLifeDelta <= -2) return 'utagai';
   if (outcome.milkPointDelta > 0) return 'horoyoi';
-  if (outcome.playerPointDelta < -1) return 'fuman';
+  if (outcome.playerPointDelta < -1) return 'kibishi';
   return 'tuzyou';
 }
 
@@ -237,6 +253,17 @@ function pickMilkCard() {
   // Late game: if player has enough points to fake, boost watch to catch it
   if (state.turn >= 8 && state.player.point >= CARD_COSTS.fake && actorCanPlay(state.milk, 'watch')) {
     weights.watch = Math.min(weights.watch + 0.4, 2.0);
+  }
+  // Memory: if player faked in last 2 turns without getting caught, milk gets suspicious
+  const recentTwo = state.history.slice(-2);
+  const playerFakedFree = recentTwo.some(h => h.p === 'fake' && h.m !== 'watch');
+  if (playerFakedFree && actorCanPlay(state.milk, 'watch')) {
+    weights.watch = Math.min(weights.watch + 0.9, 2.8);
+  }
+
+  // Wildcard: 10% chance to pick unpredictably so player can't pattern-exploit
+  if (Math.random() < 0.1) {
+    return legal[Math.floor(Math.random() * legal.length)];
   }
 
   const total = legal.reduce((s, id) => s + weights[id], 0);
@@ -372,7 +399,12 @@ function enterTell() {
   }
 
   // みるく表情をテルに連動（実画像ファイルで切替）
-  const EXPR_OF = { glass:'utagai', excite:'bikkuri', bored:'tuzyou', playful:'horoyoi' };
+  const EXPR_OF = {
+    glass: state.milk.point >= 3 ? 'kibishi' : 'utagai',
+    excite: 'bikkuri',
+    bored: 'tuzyou',
+    playful: 'horoyoi',
+  };
   preloadImage(CARD_IMAGES.milk[state.tell.willPlay]);
   preloadImage(CHAR_IMAGES[EXPR_OF[state.tell.type] || 'tuzyou']);
   setCharFace(EXPR_OF[state.tell.type] || 'tuzyou');
@@ -471,6 +503,10 @@ function onCardTap(cardId) {
     return;
   }
 
+  if (navigator.vibrate) {
+    navigator.vibrate(cardId === 'watch' ? [25, 10, 40] : [18]);
+  }
+
   state.playerCard = cardId;
   state.counts[cardId]++;
   refreshHandSlots(); // Immediately update count display and disabled state
@@ -564,6 +600,14 @@ function enterReveal() {
   const app = $('app');
   app.dataset.match = matchKey;
 
+  // Dynamic reveal delay: longer when gauges are at dangerous levels
+  const dangerDelay = (() => {
+    if (state.player.life <= 1 || state.milk.life <= 1) return 1100;
+    if (state.player.life <= 2 || state.milk.life <= 2) return 850;
+    if (state.turn >= 8) return 750;
+    return REVEAL_PRE_FLIP_MS;
+  })();
+
   // Flip, then chain to RESOLVE — keep each beat readable before numbers move.
   setTimeout(() => {
     if (state.fsm !== 'REVEAL') return;
@@ -572,7 +616,7 @@ function enterReveal() {
     setTimeout(() => {
       if (state.fsm === 'REVEAL') setState('RESOLVE');
     }, FLIP_MS);
-  }, REVEAL_PRE_FLIP_MS);
+  }, dangerDelay);
 }
 
 function clearReveal() {
@@ -652,6 +696,12 @@ function resolveBattleTurn(playerCard, milkCard) {
     notes.push('みるくの監視成功！あなたHP-2 / みるくP+1');
   }
 
+  // Fake vs toast: stayed sober while milk drank → P+1 (offset cost, reward for correct read)
+  if (playerCard === 'fake' && milkCard === 'toast') {
+    addPoint(state.player, 1);
+    notes.push('場の隙を突いた！P+1');
+  }
+
   syncGaugeMetrics();
 
   const outcome = {
@@ -718,6 +768,17 @@ function enterResolve() {
   }, REVEAL_HOLD_MS);
 }
 
+function fadeToResult() {
+  const curtain = document.createElement('div');
+  curtain.style.cssText = 'position:absolute;inset:0;background:#0A0006;opacity:0;z-index:200;pointer-events:none;transition:opacity 0.45s ease';
+  $('app').appendChild(curtain);
+  requestAnimationFrame(() => requestAnimationFrame(() => { curtain.style.opacity = '1'; }));
+  setTimeout(() => {
+    setState('RESULT');
+    setTimeout(() => curtain.remove(), 320);
+  }, 470);
+}
+
 function enterTurnEnd() {
   clearSfx();
 
@@ -725,17 +786,17 @@ function enterTurnEnd() {
   if (state.player.life <= 0 && state.milk.life <= 0) {
     state.endReason = 'double_life0';
     state.winner = 'draw';
-    return setState('RESULT');
+    return fadeToResult();
   }
   if (state.player.life <= 0) {
     state.endReason = 'player_life0';
     state.winner = 'milk';
-    return setState('RESULT');
+    return fadeToResult();
   }
   if (state.milk.life <= 0) {
     state.endReason = 'milk_life0';
     state.winner = 'player';
-    return setState('RESULT');
+    return fadeToResult();
   }
 
   // 10 turns survived
@@ -746,7 +807,7 @@ function enterTurnEnd() {
     else if (state.player.point > state.milk.point) state.winner = 'player';
     else if (state.player.point < state.milk.point) state.winner = 'milk';
     else state.winner = 'draw';
-    return setState('RESULT');
+    return fadeToResult();
   }
 
   // Continue — update face to reflect current gauge state before next tell
@@ -1440,17 +1501,17 @@ function enterResult() {
     });
   }
 
-  // Show representative card image (decisive card, fallback to top card)
+  // Show milk's defeat portrait on player win; otherwise representative card image.
   const preview = $('result-card-img');
   if (preview) {
     preview.innerHTML = '';
     const cardId = s.decisive ? s.decisive.p : s.topCard.id;
-    const imgSrc = CARD_IMAGES.player[cardId];
+    const imgSrc = s.isWin ? CHAR_IMAGES.haiboku : CARD_IMAGES.player[cardId];
     if (imgSrc) {
       const img = document.createElement('img');
       img.src = imgSrc;
-      img.alt = CARDS[cardId].label;
-      img.className = 'result-card-art';
+      img.alt = s.isWin ? '敗北したみるく' : CARDS[cardId].label;
+      img.className = s.isWin ? 'result-card-art result-milk-art' : 'result-card-art';
       img.onerror = () => preview.replaceChildren();
       preview.appendChild(img);
     }
@@ -1707,7 +1768,7 @@ function playBustCutin() {
   const cutin = $('bust-cutin');
   const img = $('bust-cutin-img');
   if (!cutin || !img) return;
-  img.src = CHAR_IMAGES.utagai;
+  img.src = CHAR_IMAGES.kibishi;
   cutin.classList.remove('bust-cutin-in');
   void cutin.offsetWidth;
   cutin.classList.add('bust-cutin-in');
