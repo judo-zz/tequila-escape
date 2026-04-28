@@ -14,8 +14,8 @@
   <meta name="twitter:description" content="飲むか、ごまかすか、見抜くか、逃げ切るか。10ターンの読み合いを始める。">
   <meta name="twitter:image" content="https://nagopine.net/tequila-escape/assets/title_logo_card_mode.png">
   <title>カードモード — テキーラから逃げろ！</title>
-  <link rel="icon" href="assets/title_logo_card_mode_cutout.png" type="image/png">
-  <link rel="apple-touch-icon" href="assets/title_logo_card_mode.png">
+  <link rel="icon" href="assets/optimized/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/optimized/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
@@ -42,9 +42,11 @@
     <!-- hero row: character left + title right -->
     <div class="intro-hero">
       <img
-        src="assets/intro_milk_crop.png"
+        src="assets/optimized/intro_milk_crop.webp"
         alt=""
         class="intro-char"
+        decoding="async"
+        fetchpriority="high"
         aria-hidden="true">
 
       <div class="intro-hero-right">
@@ -53,9 +55,11 @@
         </div>
         <div class="intro-title-block">
           <img
-            src="assets/title_logo_card_mode_cutout.png"
+            src="assets/optimized/title_logo_card_mode_cutout.webp"
             alt="テキーラから逃げろ！ CARD MODE"
-            class="intro-title-logo">
+            class="intro-title-logo"
+            decoding="async"
+            fetchpriority="high">
           <div class="intro-title-fallback" aria-hidden="true">
             <p class="intro-sub">テキーラから</p>
             <h1 class="intro-title-main">逃げろ！</h1>
@@ -69,51 +73,40 @@
     <div class="intro-scroll">
 
       <p class="intro-copy">
-        みるくと同時にカードを出して、<br>
         飲むか、ごまかすか、見抜くか、逃げ切るか。<br>
         10ターンの読み合いを始める。
       </p>
 
       <div class="intro-preview">
         <figure class="preview-card-wrap">
-          <img src="assets/ware_nomu.PNG" alt="" class="preview-card-img" aria-hidden="true">
+          <img src="assets/optimized/ware_nomu.webp" alt="" class="preview-card-img" aria-hidden="true" loading="lazy" decoding="async">
           <figcaption class="preview-card-cap">
             <span class="preview-card-name">乾杯する</span>
-            <span class="preview-card-desc">酔いUP / 疑惑DOWN</span>
+            <span class="preview-card-desc">HP-1 / P+1</span>
           </figcaption>
         </figure>
         <figure class="preview-card-wrap">
-          <img src="assets/ware_fake.PNG" alt="" class="preview-card-img" aria-hidden="true">
+          <img src="assets/optimized/ware_fake.webp" alt="" class="preview-card-img" aria-hidden="true" loading="lazy" decoding="async">
           <figcaption class="preview-card-cap">
             <span class="preview-card-name">飲んだフリ</span>
-            <span class="preview-card-desc">ごまかして回避</span>
+            <span class="preview-card-desc">1PでHP温存</span>
           </figcaption>
         </figure>
         <figure class="preview-card-wrap">
-          <img src="assets/ware_kanshi.PNG" alt="" class="preview-card-img" aria-hidden="true">
+          <img src="assets/optimized/ware_kanshi.webp" alt="" class="preview-card-img" aria-hidden="true" loading="lazy" decoding="async">
           <figcaption class="preview-card-cap">
             <span class="preview-card-name">見張る</span>
-            <span class="preview-card-desc">フリを見抜く！</span>
+            <span class="preview-card-desc">3Pでフリ狩り</span>
           </figcaption>
         </figure>
         <figure class="preview-card-wrap">
-          <img src="assets/ware_tyeisa-.PNG" alt="" class="preview-card-img" aria-hidden="true">
+          <img src="assets/optimized/ware_tyeisa-.webp" alt="" class="preview-card-img" aria-hidden="true" loading="lazy" decoding="async">
           <figcaption class="preview-card-cap">
-            <span class="preview-card-name">逃げる</span>
-            <span class="preview-card-desc">酔いを回復</span>
+            <span class="preview-card-name">チェイサー</span>
+            <span class="preview-card-desc">2PでHP+2</span>
           </figcaption>
         </figure>
       </div>
-
-      <div class="intro-notes">
-        <span>♥ 酔いすぎず</span>
-        <span>♥ 疑われすぎず</span>
-        <span>♥ 空気を冷やさず</span>
-      </div>
-
-      <p class="intro-disclaimer">
-        ※このゲームはフィクションです。実際の飲酒は無理せず、自分のペースで。
-      </p>
 
     </div>
 
@@ -125,8 +118,26 @@
         <span class="btn-spark">✦</span>
       </button>
       <a href="party-mode.html" class="link-back">── パーティモードへ ──</a>
+      <p class="intro-disclaimer">
+        ※このゲームはフィクションです。実際の飲酒は無理せず、自分のペースで。
+      </p>
     </div>
 
+  </div>
+
+  <div id="rule-help" class="rule-help" role="dialog" aria-modal="true" aria-labelledby="rule-help-title" hidden>
+    <div class="rule-help-card">
+      <p class="rule-help-kicker">はじめての読み合い</p>
+      <h2 id="rule-help-title" class="rule-help-title">4枚だけ覚えればOK</h2>
+      <ul class="rule-help-list">
+        <li><strong>乾杯</strong><span>HPを1払ってPを1作る</span></li>
+        <li><strong>フェイク</strong><span>1Pで飲まずに守る</span></li>
+        <li><strong>監視</strong><span>3Pで相手のフェイクを刺す</span></li>
+        <li><strong>チェイサー</strong><span>2PでHPを2回復</span></li>
+      </ul>
+      <p class="rule-help-note">みるくの予告を読んで、10ターン逃げ切る。</p>
+      <button id="rule-help-start" class="rule-help-start" type="button">わかった、始める</button>
+    </div>
   </div>
 
   <div id="game-screen" class="screen">
@@ -137,45 +148,9 @@
           <span class="hud-logo-text">CARD MODE</span>
         </div>
 
-        <div class="hud-stat">
-          <div class="hud-stat-top">
-            <span class="hud-stat-icon">🍸</span>
-            <span class="hud-stat-name">酔い</span>
-            <strong id="drunk-value" class="hud-stat-value">0</strong>
-          </div>
-          <div class="hud-bar"><div id="drunk-fill" class="gauge-fill drunk"></div></div>
-        </div>
-
-        <div class="hud-stat">
-          <div class="hud-stat-top">
-            <span class="hud-stat-icon">👀</span>
-            <span class="hud-stat-name">疑惑</span>
-            <strong id="sus-value" class="hud-stat-value">20</strong>
-          </div>
-          <div class="hud-bar"><div id="sus-fill" class="gauge-fill sus"></div></div>
-        </div>
-
-        <div class="hud-stat">
-          <div class="hud-stat-top">
-            <span class="hud-stat-icon">✨</span>
-            <span class="hud-stat-name">空気</span>
-            <strong id="tens-value" class="hud-stat-value">60</strong>
-          </div>
-          <div class="hud-bar"><div id="tens-fill" class="gauge-fill tens"></div></div>
-        </div>
-
-        <div class="hud-stat">
-          <div class="hud-stat-top">
-            <span class="hud-stat-icon">💗</span>
-            <span class="hud-stat-name">みるく</span>
-            <strong id="mood-value" class="hud-stat-value">0</strong>
-          </div>
-          <div class="hud-bar"><div id="mood-fill" class="gauge-fill mood"></div></div>
-        </div>
-
         <div class="hud-meta">
           <div class="hud-turnline">TURN <strong id="turn-display">1 / 10</strong></div>
-          <div id="act-badge" class="act-badge">ACT 1 / 探り合い</div>
+          <div id="act-badge" class="act-badge">探り合い</div>
           <button id="top-btn" class="top-btn" type="button" aria-label="トップに戻る">TOP</button>
         </div>
       </div>
@@ -191,6 +166,7 @@
             <div class="hint-copy">
               <div class="hint-observation"></div>
               <div class="hint-prediction"></div>
+              <div class="hint-trust"></div>
             </div>
           </div>
         </div>
@@ -203,8 +179,9 @@
             <img
               id="char-art"
               class="char-art"
-              src="assets/tuzyou.png"
+              src="assets/optimized/tuzyou.webp"
               alt=""
+              decoding="async"
               aria-hidden="true"
               onload="this.classList.add('loaded')"
               onerror="this.dataset.failed='1'">
@@ -237,7 +214,6 @@
                 <div class="flip-back"></div>
               </div>
             </div>
-            <div class="reveal-caption">あなた</div>
           </div>
 
           <div id="vs-label" class="vs-label">せーの！</div>
@@ -250,7 +226,6 @@
                 <div class="flip-back"></div>
               </div>
             </div>
-            <div class="reveal-caption">みるく</div>
           </div>
         </div>
 
@@ -259,48 +234,94 @@
     </main>
 
     <section id="hand" class="hand blocked">
+      <div class="resource-board" aria-label="ライフとポイント">
+        <div class="resource-side resource-player">
+          <span class="resource-owner">YOU</span>
+          <div class="hud-stat">
+            <div class="hud-stat-top">
+              <span class="hud-stat-icon">HP</span>
+              <span class="hud-stat-name">HP</span>
+              <strong id="drunk-value" class="hud-stat-value">5</strong>
+            </div>
+            <div class="hud-bar"><div id="drunk-fill" class="gauge-fill drunk"></div></div>
+          </div>
+          <div class="hud-stat">
+            <div class="hud-stat-top">
+              <span class="hud-stat-icon">P</span>
+              <span class="hud-stat-name">P</span>
+              <strong id="sus-value" class="hud-stat-value">0</strong>
+            </div>
+            <div class="hud-bar"><div id="sus-fill" class="gauge-fill sus"></div></div>
+          </div>
+        </div>
+
+        <div class="resource-side resource-milk">
+          <span class="resource-owner">MILK</span>
+          <div class="hud-stat">
+            <div class="hud-stat-top">
+              <span class="hud-stat-icon">HP</span>
+              <span class="hud-stat-name">HP</span>
+              <strong id="tens-value" class="hud-stat-value">5</strong>
+            </div>
+            <div class="hud-bar"><div id="tens-fill" class="gauge-fill tens"></div></div>
+          </div>
+          <div class="hud-stat">
+            <div class="hud-stat-top">
+              <span class="hud-stat-icon">P</span>
+              <span class="hud-stat-name">P</span>
+              <strong id="mood-value" class="hud-stat-value">0</strong>
+            </div>
+            <div class="hud-bar"><div id="mood-fill" class="gauge-fill mood"></div></div>
+          </div>
+        </div>
+      </div>
+
       <div class="hand-head">
         <div class="hand-copy">
           <span class="hand-title">あなたの手札</span>
-          <span class="hand-subtitle">1枚えらんで同時に出す</span>
+          <span id="hand-subtitle" class="hand-subtitle">1枚えらんで同時に出す</span>
         </div>
       </div>
 
       <div class="hand-grid">
-        <button class="card-slot" data-card="toast" aria-label="乾杯する 無限" disabled>
-          <img src="assets/ware_nomu.PNG" alt="" class="card-img-thumb" aria-hidden="true">
+        <button class="card-slot" data-card="toast" aria-label="乾杯する コスト0" disabled>
+          <img src="assets/optimized/ware_nomu.webp" alt="" class="card-img-thumb" aria-hidden="true" loading="lazy" decoding="async">
           <div class="card-text">
             <span class="card-label">乾杯する</span>
-            <span class="card-hint">疑惑↓ 酔い↑</span>
+            <span class="card-hint">HP-1 / P+1</span>
           </div>
-          <span class="card-count">∞</span>
+          <span class="card-count">0P</span>
+          <span class="card-blocked-reason" aria-hidden="true"></span>
         </button>
 
-        <button class="card-slot" data-card="fake" aria-label="飲んだフリ 残り3枚" disabled>
-          <img src="assets/ware_fake.PNG" alt="" class="card-img-thumb" aria-hidden="true">
+        <button class="card-slot" data-card="fake" aria-label="飲んだフリ コスト1" disabled>
+          <img src="assets/optimized/ware_fake.webp" alt="" class="card-img-thumb" aria-hidden="true" loading="lazy" decoding="async">
           <div class="card-text">
             <span class="card-label">飲んだフリ</span>
-            <span class="card-hint">バレると大事故</span>
+            <span class="card-hint">1P / HP守る</span>
           </div>
-          <span class="card-count">×3</span>
+          <span class="card-count">1P</span>
+          <span class="card-blocked-reason" aria-hidden="true"></span>
         </button>
 
-        <button class="card-slot" data-card="watch" aria-label="見張る 残り2枚" disabled>
-          <img src="assets/ware_kanshi.PNG" alt="" class="card-img-thumb" aria-hidden="true">
+        <button class="card-slot" data-card="watch" aria-label="見張る コスト3" disabled>
+          <img src="assets/optimized/ware_kanshi.webp" alt="" class="card-img-thumb" aria-hidden="true" loading="lazy" decoding="async">
           <div class="card-text">
             <span class="card-label">見張る</span>
-            <span class="card-hint">フリをカウンター</span>
+            <span class="card-hint">3P / フェイク狩り</span>
           </div>
-          <span class="card-count">×2</span>
+          <span class="card-count">3P</span>
+          <span class="card-blocked-reason" aria-hidden="true"></span>
         </button>
 
-        <button class="card-slot" data-card="chaser" aria-label="チェイサー 残り2枚" disabled>
-          <img src="assets/ware_tyeisa-.PNG" alt="" class="card-img-thumb" aria-hidden="true">
+        <button class="card-slot" data-card="chaser" aria-label="チェイサー コスト2" disabled>
+          <img src="assets/optimized/ware_tyeisa-.webp" alt="" class="card-img-thumb" aria-hidden="true" loading="lazy" decoding="async">
           <div class="card-text">
             <span class="card-label">チェイサー</span>
-            <span class="card-hint">酔い↓ 場冷え注意</span>
+            <span class="card-hint">2P / HP+2</span>
           </div>
-          <span class="card-count">×2</span>
+          <span class="card-count">2P</span>
+          <span class="card-blocked-reason" aria-hidden="true"></span>
         </button>
       </div>
     </section>
@@ -323,9 +344,9 @@
     <div id="bust-cutin" class="bust-cutin">
       <img id="bust-cutin-img" class="bust-cutin-img" alt="">
       <div class="bust-cutin-copy">
-        <span class="bust-cutin-kicker">即死級事故</span>
-        <strong class="bust-cutin-title">バレた……！</strong>
-        <span class="bust-cutin-line">グラスの沈黙まで見られている。</span>
+        <span class="bust-cutin-kicker">カウンター被弾</span>
+        <strong class="bust-cutin-title">大バレ！</strong>
+        <span class="bust-cutin-line">フェイクを読まれてHPが削れる。</span>
       </div>
     </div>
     <div id="act-banner" class="act-banner">
@@ -355,6 +376,7 @@
 
       <div class="result-tabs" role="tablist">
         <button class="tab-btn active" data-tab="objective" role="tab" aria-selected="true">事実</button>
+        <button class="tab-btn" data-tab="history" role="tab" aria-selected="false">履歴</button>
         <button class="tab-btn" data-tab="monologue" role="tab" aria-selected="false">モノローグ</button>
         <button class="tab-btn" data-tab="cast" role="tab" aria-selected="false">みるく視点</button>
       </div>
