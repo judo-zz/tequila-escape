@@ -113,7 +113,7 @@ function dealHands(players, pool) {
   }
 }
 
-function initState(playerName, cpuCount, maxRounds, humanCharacter, cpuCharacters) {
+function initState(playerName, cpuCount, maxCycles, humanCharacter, cpuCharacters) {
   const actionPool = buildActionPool();
   const players = [];
   const humanChar = humanCharacter || getCharacter(DEFAULT_HUMAN_CHARACTER_ID);
@@ -130,20 +130,20 @@ function initState(playerName, cpuCount, maxRounds, humanCharacter, cpuCharacter
     players,
     actionPool,
     deck:           buildDeck(),
-    deckDiscard:    [],   // 山札の捨て札（デッキカードのみ）
-    actionDiscard:  [],   // アクションカードの捨て札
+    deckDiscard:    [],
+    actionDiscard:  [],
     turnOrder:      players.map((_, i) => i),
     currentTurnIdx: 0,
     direction:      1,
-    round:          1,
-    maxRounds,
     turnsTaken:     0,
-    // ラウンドカウント: 方向に依存せず、完了ターン数 / 参加人数で算出する
+    deckCycle:      0,
+    maxCycles,
+    gameOverPending: false,
     doublePushActive: false,
     dodgeStack:       0,
-    forceDrawTarget:  null,  // 強制ドロー対象のプレイヤーid（boolean ではなく id で管理）
-    forcedDrawPending: null, // { sourcePlayerName } — 人間が手動で引く待ち状態
-    targetPendingFrom: null, // PvP: target 使用者のturnIdx退避
+    forceDrawTarget:  null,
+    forcedDrawPending: null,
+    targetPendingFrom: null,
     hasDrawnThisTurn: false,
     lastEvent: EVENT_COPY.waiting,
     eventSerial: 0,
@@ -155,7 +155,7 @@ function initState(playerName, cpuCount, maxRounds, humanCharacter, cpuCharacter
   };
 }
 
-function initStatePvp(seats, maxRounds) {
+function initStatePvp(seats, maxCycles) {
   const actionPool = buildActionPool();
   const players = seats.map((s, i) => createPlayer(`p${i}`, s.name, true, s.character));
   dealHands(players, actionPool);
@@ -168,9 +168,10 @@ function initStatePvp(seats, maxRounds) {
     turnOrder: players.map((_, i) => i),
     currentTurnIdx: 0,
     direction: 1,
-    round: 1,
-    maxRounds,
     turnsTaken: 0,
+    deckCycle: 0,
+    maxCycles,
+    gameOverPending: false,
     doublePushActive: false,
     dodgeStack: 0,
     forceDrawTarget: null,
@@ -217,12 +218,33 @@ function nextTurnPlayerIdx(offset = 1) {
 // ── Deck helpers ──
 function drawFromDeck() {
   if (state.deck.length === 0) {
-    if (state.deckDiscard.length === 0) return null;
-    state.deck = shuffle(state.deckDiscard);
-    state.deckDiscard = [];
-    addLog('山札をシャッフルしました', 'log-card');
+    if (state.gameOverPending) return null;
+    const canContinue = onDeckCycleEnd();
+    if (!canContinue) return null;
   }
   return state.deck.pop();
+}
+
+function onDeckCycleEnd() {
+  state.deckCycle++;
+
+  if (state.deckCycle >= state.maxCycles) {
+    state.gameOverPending = true;
+    addLog(`デッキが${state.maxCycles}周しました。ゲーム終了！`, 'log-card');
+    return false;
+  }
+
+  // 捨て札 + テキーラ2枚追加でデッキ再構築、全員手札+1
+  const extra = [
+    { id: 'tequila', label: 'テキーラ', count: 1, type: 'deck' },
+    { id: 'tequila', label: 'テキーラ', count: 1, type: 'deck' },
+  ];
+  state.deck = shuffle([...state.deckDiscard, ...extra]);
+  state.deckDiscard = [];
+  state.players.forEach(p => replenishHand(p));
+  addLog(`▶ ${state.deckCycle}周目終了！ テキーラ+2 全員手札+1 → ${state.deckCycle + 1}周目スタート`, 'log-card');
+  showCutin(`${state.deckCycle + 1}周目スタート`, 'テキーラが増えた……');
+  return true;
 }
 
 function peekDeck() {
@@ -305,7 +327,14 @@ function consumeNoDrinkGuard(player, cardId) {
 // ── Draw resolution ──
 // kanpaiNested: kanpaiの中から再帰的に呼ばれている場合 true（連鎖防止）
 function resolveDrawCard(card, player, kanpaiNested = false) {
-  if (!card) { addLog(`${player.name}: 山札が空でした`, ''); return; }
+  if (!card) {
+    if (state.gameOverPending) {
+      addLog('山札が尽きました。ターン終了でゲーム終了！', 'log-card');
+    } else {
+      addLog(`${player.name}: 山札が空でした`, '');
+    }
+    return;
+  }
 
   discardCard(card);
 
@@ -480,14 +509,12 @@ function advanceTurnIdx() {
 
 function endTurn() {
   state.turnsTaken++;
-  if (state.turnsTaken >= state.maxRounds * state.players.length) {
+  if (state.gameOverPending) {
     finishGame();
     return;
   }
 
   const nextTurnIdx = advanceTurnIdx();
-  state.round = Math.floor(state.turnsTaken / state.players.length) + 1;
-
   state.currentTurnIdx = nextTurnIdx;
 
   // スキップ処理（再帰だがラウンドカウントを進めない専用関数で処理）
@@ -921,7 +948,8 @@ function renderAll() {
 }
 
 function renderHud() {
-  $('round-display').textContent = `${Math.min(state.round, state.maxRounds)} / ${state.maxRounds}`;
+  const cycleNum = Math.min(state.deckCycle + 1, state.maxCycles);
+  $('round-display').textContent = `${cycleNum}周目 / ${state.maxCycles}周`;
   $('deck-num').textContent = state.deck.length;
   $('tequila-num').textContent = state.deck.filter(c => c.id === 'tequila' || c.id === 'tequila_party').length;
 }
@@ -1206,8 +1234,9 @@ function renderActionBar() {
 
   const isForcedDraw = state.phase === 'FORCED_DRAW';
   bar.classList.toggle('is-forced', isForcedDraw);
+  const isGameOver = state.gameOverPending;
   bar.classList.toggle('can-end', isPlayerTurn && state.hasDrawnThisTurn);
-  drawBtn.disabled = !isPlayerTurn && !isForcedDraw;
+  drawBtn.disabled = (!isPlayerTurn && !isForcedDraw) || isGameOver;
   endBtn.disabled  = !isPlayerTurn || !state.hasDrawnThisTurn;
   badge.textContent = state.deck.length > 0 ? `残${state.deck.length}` : '空';
   badge.setAttribute('aria-label', state.deck.length > 0 ? `山札 残り ${state.deck.length} 枚` : '山札は空');
@@ -1218,7 +1247,11 @@ function renderActionBar() {
   }
 
   const drawLabel = $('draw-label-text');
-  if (drawLabel) drawLabel.textContent = isForcedDraw ? '引かされる……' : '山札を引く';
+  if (drawLabel) {
+    if (isGameOver) drawLabel.textContent = 'ゲーム終了';
+    else if (isForcedDraw) drawLabel.textContent = '引かされる……';
+    else drawLabel.textContent = '山札を引く';
+  }
 }
 
 // ── Player interaction ──
@@ -1355,7 +1388,7 @@ function buildPartyResultPostText(sorted, human, humanRank) {
     const scoreLine = sorted.map(p => `${p.name}🍺${p.drunk}`).join(' / ');
     return [
       'テキーラから逃げろ！PARTY MODE（ローカル対人）',
-      `${state.maxRounds}R × ${state.players.length}人`,
+      `${state.maxCycles}周 × ${state.players.length}人`,
       `勝者: ${winLabel}`,
       `最終: ${scoreLine}`,
     ].join('\n');
@@ -1363,7 +1396,7 @@ function buildPartyResultPostText(sorted, human, humanRank) {
   const worst = sorted[sorted.length - 1];
   return [
     'テキーラから逃げろ！PARTY MODE',
-    `${state.maxRounds}R × ${state.players.length}人`,
+    `${state.maxCycles}周 × ${state.players.length}人`,
     `勝者: ${winLabel}`,
     human ? `あなた: ${humanRank}位 / 酔い${human.drunk}` : null,
     `最大被弾: ${worst.name} 酔い${worst.drunk}`,
@@ -1497,14 +1530,14 @@ function createCharacterButton(character, role) {
 }
 
 function startGame() {
-  const maxRounds = parseInt(document.querySelector('.round-btn.active')?.dataset.rounds || '10');
+  const maxCycles = parseInt(document.querySelector('.round-btn.active')?.dataset.cycles || '2');
 
   if (setupMode === 'pvp') {
     const seats = pvpSeats.slice(0, pvpCount).map((s, i) => ({
       name: (s.name?.trim() || `P${i + 1}`).slice(0, 8),
       character: getCharacter(s.characterId || pvpFallbackCharacter(i)),
     }));
-    state = initStatePvp(seats, maxRounds);
+    state = initStatePvp(seats, maxCycles);
     state.phase = 'PASS';
   } else {
     const name = $('player-name').value.trim() || 'あなた';
@@ -1512,7 +1545,7 @@ function startGame() {
     ensureCpuCharacterSelection(true);
     const humanCharacter = getCharacter(selectedHumanCharacterId);
     const cpuCharacters = selectedCpuCharacterIds.slice(0, cpuCount).map(getCharacter);
-    state = initState(name, cpuCount, maxRounds, humanCharacter, cpuCharacters);
+    state = initState(name, cpuCount, maxCycles, humanCharacter, cpuCharacters);
     state.phase = 'PLAYER_TURN';
   }
 
@@ -1662,14 +1695,14 @@ function restartGame() {
 
 function playAgain() {
   if (!state) return;
-  const maxRounds = state.maxRounds;
+  const maxCycles = state.maxCycles;
   clearTransientUI();
   if (state.gameMode === 'pvp') {
     const seats = state.players.map(p => ({
       name: p.name,
       character: getCharacter(p.characterId),
     }));
-    state = initStatePvp(seats, maxRounds);
+    state = initStatePvp(seats, maxCycles);
     state.phase = 'PASS';
   } else {
     const human = state.players.find(p => p.isHuman);
@@ -1677,7 +1710,7 @@ function playAgain() {
     const cpuCount = state.players.length - 1;
     const humanCharacter = getCharacter(human?.characterId || selectedHumanCharacterId);
     const cpuCharacters = state.players.filter(p => !p.isHuman).map(p => getCharacter(p.characterId));
-    state = initState(name, cpuCount, maxRounds, humanCharacter, cpuCharacters);
+    state = initState(name, cpuCount, maxCycles, humanCharacter, cpuCharacters);
     state.phase = 'PLAYER_TURN';
   }
   showScreen('game-screen');
