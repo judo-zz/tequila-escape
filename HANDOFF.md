@@ -1,8 +1,8 @@
 # テキーラから逃げろ！— 他AI向け引き継ぎ資料
 
-**ローカル起動**: `python3 -m http.server 8000` → `http://localhost:8000/`  
+**ローカル起動**: `python3 -m http.server 8000` → `http://localhost:8000/`
 **公開URL**: `https://nagopine.net/tequila-escape/`
-**git管理**: あり（`main` ブランチ）  
+**git管理**: あり（`main` ブランチ）
 
 ---
 
@@ -10,7 +10,7 @@
 
 コンカフェ（コンセプトカフェ）で、ピンクツインテールのキャスト「みるく」と隣り合った客（プレイヤー）が、テキーラ乾杯を10ターン切り抜けるカード対戦ゲーム。
 
-**世界観**: みるくが毎ターン1枚カードを同時出しし、その組み合わせ（4×4=16パターン）でゲージが増減する。「飲みすぎず・疑われすぎず・空気を冷やさず・みるくのノリを上げながら」10ターン生き残るのが目標。
+**世界観**: みるくが毎ターン1枚カードを同時出しし、HP と P（ポイント）の増減で勝敗が決まる読み合いゲーム。「みるくの HP を削り切るか、10ターン後に HP/P 差で上回る」のが目標。
 
 **ジャンル**: 読み合い / 心理戦 / スマホ縦画面ブラウザゲーム（外部ライブラリなし）
 
@@ -20,19 +20,23 @@
 
 ```
 tequila-escape/
-├── index.html              ← 公開ルート用モード選択（card-mode / party-mode）
-├── card-mode.html   317行  ← カードモードのHTML（メイン）
-├── card-mode.css   1671行  ← カードモードのCSS
-├── card-mode.js     829行  ← カードモードのJS（ゲームロジック全て）
-├── normal-mode.html 148行  ← 通常モード（旧版・コマンド選択型）
-├── main.js                 ← 通常モードのJS
-├── style.css               ← 通常モードのCSS
-├── GAME_GUIDE.md           ← カードモードのゲーム内ガイド文書
-├── README.md               ← 通常モードの仕様書
-└── assets/                 ← 全画像素材（下記詳細）
+├── index.html               ← 公開ルート用モード選択（card-mode / party-mode）
+├── card-mode.html    414行  ← カードモードのHTML（メイン）
+├── card-mode.css    3288行  ← カードモードのCSS
+├── card-mode.js     2041行  ← カードモードのJS（ゲームロジック全て）
+├── party-mode.html          ← パーティモード
+├── party-mode.css           ← パーティモードCSS
+├── party-mode.js            ← パーティモードJS
+├── normal-mode.html  148行  ← 通常モード（旧版・コマンド選択型）
+├── main.js                  ← 通常モードのJS
+├── style.css                ← 通常モードのCSS
+├── CARD_MODE_SPEC.md        ← カードモード設計仕様書（詳細・最新）
+├── CARD_MODE_MANUAL.md      ← カードモードユーザー向け説明書
+├── HANDOFF.md               ← 本ファイル（他AI向け引き継ぎ）
+└── assets/                  ← 全画像素材（下記詳細）
 ```
 
-**カードモード本体を編集する場合は `card-mode.*` の3ファイルのみ触る。** `index.html` は公開ルートのモード選択、`party-mode.*` はパーティモード、`normal-mode.html / main.js / style.css` は通常モード（旧版）。
+**カードモード本体を編集する場合は `card-mode.*` の3ファイルのみ触る。**
 
 ---
 
@@ -46,12 +50,14 @@ tequila-escape/
 | ファイル名 | 表情キー | 使われる場面 |
 |---|---|---|
 | `assets/tuzyou.png` | `tuzyou` | 通常・ゲーム開始時デフォルト |
-| `assets/utagai.png` | `utagai` | 疑惑が高いとき / テル「グラス見てる」 |
-| `assets/bikkuri.png` | `bikkuri` | フリ見破り / 乾杯テル |
-| `assets/horoyoi.png` | `horoyoi` | みるくMOOD高いとき / テル「飲んだフリかも」 |
-| `assets/fuman.png` | `fuman` | 空気が冷えたとき / MOOD低下時 |
-| `assets/deisui.png` | `deisui` | プレイヤー酔い≥50 |
-| `assets/milk.png` | (未使用) | 別ポーズ、通常モード用だった |
+| `assets/utagai.png` | `utagai` | プレイヤーP多め・見張り警戒時 |
+| `assets/bikkuri.png` | `bikkuri` | 乾杯テル・見張り成功/失敗の演出 |
+| `assets/horoyoi.png` | `horoyoi` | みるくHP余裕あり・飲んだフリテル |
+| `assets/fuman.png` | `fuman` | みるくHP低め |
+| `assets/deisui.png` | `deisui` | プレイヤーHP危機的・終盤など |
+| `assets/kibishi.png` | `kibishi` | ファイナルターン・危機演出 |
+
+各表情には `EXPR_BUBBLE` で吹き出し文字（`…？` `！` `♥` `…` `ふわ` `！！`）が対応し、`setCharFace()` 呼び出し時に `.expr-bubble` 要素へ表示される。
 
 ### イントロ画面専用キャラ（タイトル画面のみ）
 
@@ -66,41 +72,62 @@ tequila-escape/
 **みるく側（`aite_`プレフィックス）**: みるくのフリップカードに使用  
 **裏面（`_ura`）**: フリップ前の伏せ状態
 
-| カードID | 自分側 | みるく側 | 表示名 | 効果 |
-|---|---|---|---|---|
-| `toast` | `assets/ware_nomu.PNG` | `assets/aite_nomu.PNG` | 乾杯する / リード乾杯 | 酔いUP・疑惑DOWN |
-| `fake` | `assets/ware_fake.PNG` | `assets/aite_fake.PNG` | 飲んだフリ / 軽くフリ | バレると大事故 |
-| `watch` | `assets/ware_kanshi.PNG` | `assets/aite_kanshi.PNG` | 見張る / ガン見 | フリをカウンター |
-| `chaser` | `assets/ware_tyeisa-.PNG` | `assets/aite_yosumi.PNG` | チェイサー / 一服 | 酔いDOWN・場冷え |
-| (裏面) | `assets/ware_ura.PNG` | `assets/aite_ura.PNG` | — | フリップ前の伏せ面 |
+| カードID | 自分側 | みるく側 | 表示名 |
+|---|---|---|---|
+| `toast` | `assets/ware_nomu.PNG` | `assets/aite_nomu.PNG` | 乾杯する |
+| `fake` | `assets/ware_fake.PNG` | `assets/aite_fake.PNG` | 飲んだフリ |
+| `watch` | `assets/ware_kanshi.PNG` | `assets/aite_kanshi.PNG` | 見張る |
+| `chaser` | `assets/ware_tyeisa-.PNG` | `assets/aite_yosumi.PNG` | チェイサー |
+| (裏面) | `assets/ware_ura.PNG` | `assets/aite_ura.PNG` | — |
 
 ### 背景
 
 | ファイル名 | 説明 |
 |---|---|
-| `assets/bg.jpg` | 1080×1920 JPEG・暗いコンカフェ系背景（現在のカードモードでは未使用） |
+| `assets/bg.png` | 暗いコンカフェ系背景（パーティモードで使用） |
 
 ---
 
 ## ゲームシステム詳細
 
-### 手札構成（固定）
+### HP と P（初期値）
 
-| カード | 枚数 | 戦略的役割 |
-|---|---|---|
-| 乾杯する | ×4 | 安定して疑惑を下げる。酔いが上がるリスクあり |
-| 飲んだフリ | ×3 | 酔いを増やさないが「見張る」にカウンターされると大ダメージ |
-| 見張る | ×2 | みるくの「飲んだフリ」を捕捉。空気が冷えるリスク |
-| チェイサー | ×2 | 酔いを下げる回復カード。乱用すると場が冷える |
+| 項目 | 初期値 | 最大値 | 意味 |
+|---|---:|---:|---|
+| HP | 5 | 5 | なくなると負け |
+| P | 1 | 8 | カード使用コスト。最初から1あるため1ターン目から fake/watch を選択可能 |
 
-### ゲージ（初期値）
+### カード効果
 
-| ゲージ | 初期値 | 敗北条件 |
-|---|---|---|
-| 酔い（drunk） | 0 | **≥75** で即敗北 |
-| 疑惑（sus） | 20 | **≥100** で即敗北 |
-| 空気（tens） | 60 | **≤0** で即敗北 |
-| みるくMOOD | 0 | **≥75** で即勝利（SPECIAL END） |
+| カードID | コスト | 基本効果 | 備考 |
+|---|---:|---|---|
+| toast（乾杯する） | 0P | 自分 HP-1 / 自分 P+1 | コスト0で必ず選べる |
+| fake（飲んだフリ） | 1P | HP を減らさずターンを流す | vs toast 成立時 P+1 ボーナス |
+| watch（見張る） | 2P | 相手が fake なら 相手 HP-2 / 自分 P+1 | 外すと 2P 消費のみ |
+| chaser（チェイサー） | 2P | 自分 HP+2 | HP 満タン時は選べない |
+
+#### 特殊な組み合わせ効果
+
+| プレイヤー→みるく | 結果 |
+|---|---|
+| watch → fake | 見張り成功。みるく HP-2 / プレイヤー P+1 |
+| fake → watch | 大バレ。プレイヤー HP-2 / みるく P+1 |
+| fake → toast | 隙を突いた。プレイヤー P+1（コスト相殺） |
+| toast → toast | 両者 HP-1 / P+1 |
+| chaser → chaser | 両者 HP+2 |
+
+`resolveBattleTurn()` で計算。コスト先払い後に効果適用。
+
+### 勝敗判定
+
+| 条件 | 結果 |
+|---|---|
+| みるく HP≤0 | プレイヤー勝利（TRUE END「飲ませ切り勝利」） |
+| 10ターン後、プレイヤー HP > みるく HP | プレイヤー勝利（TRUE END「ライフ差逃げ切り」） |
+| 10ターン後、HP 同点 かつ プレイヤー P > みるく P | プレイヤー勝利（SPECIAL END「ポイント判定勝ち」） |
+| プレイヤー HP≤0 | BAD END「ライフ尽きた」 |
+| 10ターン後、みるく HP または P ≥ プレイヤー | BAD END「判定負け」 |
+| HP も P も同点 | NORMAL END（ドロー） |
 
 ### ターンの流れ（FSM）
 
@@ -108,59 +135,72 @@ tequila-escape/
 INTRO
   → [対戦開始ボタン]
 TURN_START（HUD更新・みるく表情設定）
-  → TELL_PHASE（みるくがセリフを出す・1.6秒）
-  → CARD_SELECT（プレイヤーが手札を選ぶ）
+  → TELL_PHASE（みるくのセリフ・ヒント表示）
+  → CARD_SELECT（プレイヤーがカードを選ぶ）
+  → COMMIT（確定演出）
   → REVEAL（両カードをフリップ）
-  → RESOLVE（MATRIXでゲージ計算・SFX表示）
-  → TURN_END（敗北/勝利チェック → 次ターンまたはRESULT）
-RESULT（エンディング表示・スコアコピー）
+  → RESOLVE（HP/P 計算・SFX表示）
+  → TURN_END（勝敗チェック → 次ターンまたは fadeToResult()）
+RESULT（エンディング・称号・実績表示）
 ```
 
-### MATRIX（カード組み合わせの効果値）
+`fadeToResult()` はブラック幕フェードイン後に `setState('RESULT')` を呼ぶ。直接 setState せずこの関数を経由する。
 
-`MATRIX[playerCard][milkCard] = {D, S, T, M}` で定義（ACT乗数適用前）
+### アニメーション定数（`card-mode.js` 上部）
 
-- D = 酔い変化、S = 疑惑変化、T = 空気変化、M = MOOD変化
-- ACT乗数: ACT1(T1-3)=×0.75、ACT2(T4-7)=×1.0、ACT3(T8-9)=×1.35、FINAL(T10)=×1.5
+| 定数 | 値 | 意味 |
+|---|---:|---|
+| `FLIP_MS` | 580 | カードフリップにかかるミリ秒 |
+| `REVEAL_HOLD_MS` | 1200 | リベール後の静止時間 |
+| `TELL_HOLD_MS` | 180 | テルバブル表示後の待機 |
+| `COMMIT_MS` | 400 | コミット演出の長さ |
+| `ACT_BANNER_MS` | 640 | ACT バナー表示時間 |
+| `POINT_MAX` | 8 | P の上限 |
 
-代表的な組み合わせ（×ACT乗数）:
-
-| プレイヤー→みるく | 大きな影響 |
-|---|---|
-| fake → watch | S+30（バレ！疑惑大幅上昇） |
-| watch → fake | S-22（カウンター成功・疑惑大幅減） |
-| toast → toast | D+14 M+10（両者乾杯・酔いとMOOD上昇） |
-| chaser → chaser | D-15 T-12（回復するが場が冷える） |
+`enterReveal()` では危機度に応じて静止時間を動的変更（HP≤1 なら +1100ms など）。
 
 ### テル（みるくのヒント）システム
 
-毎ターン開始時、みるくが「次に出すカード」を70%の確率で正直にほのめかす（30%は嘘）。
+毎ターン開始時、みるくが「次に出すカード」をほのめかす。信頼度はターンが進むにつれて下がる。
 
-| テル種別 | セリフ | アイコン | 予測 |
-|---|---|---|---|
-| glass（watch） | 「グラス、減ってないなぁ……」 | 👀 | 見張るかも |
-| excite（toast） | 「ねぇ、もっといこ？！」 | 🙂 | 乾杯かも |
-| bored（chaser） | 「ふぅ……」 | 💧 | 様子見かも |
-| playful（fake） | 「次は……どうしよっかな？」 | 💇‍♀️ | 飲んだフリかも |
+| ターン | 信頼度表示 | 正直な確率 |
+|---|---|---:|
+| 1-3 | 信頼度 高 | 80% |
+| 4-7 | 信頼度 中 | 70% |
+| 8-9 | 信頼度 低 | 55% |
+| 10 | 信頼度 博打 | 45% |
+
+| テル種別 | セリフ | 予測 |
+|---|---|---|
+| glass（watch） | 「グラス、減ってないなぁ……」 | 見張るかも |
+| excite（toast） | 「ねぇ、もっといこ？！」 | 乾杯かも |
+| bored（chaser） | 「ふぅ……」 | チェイサーかも |
+| playful（fake） | 「次は……どうしよっかな？」 | 飲んだフリかも |
 
 ### AI（みるくのカード選択）
 
-基本はランダム重み付け（各1）。以下で調整：
-- プレイヤーが同じカードを2ターン以上連続で使っていたら `watch` を大幅強化
-- ターン8以降・プレイヤーのfake残2枚以上で `watch` 強化
+`pickMilkCard()` で実装。基本は重み付きランダム。以下で調整：
 
-### エンディング一覧
+| 状況 | 傾向 |
+|---|---|
+| みるく P 少ない | toast 重み増加 |
+| みるく HP 低い | fake / chaser 重み増加 |
+| プレイヤー P ≥ 2 | watch 重み増加 |
+| プレイヤー P ≥ 4 | watch をさらに強化 |
+| 同カードを2ターン連続 | watch 重み増加 |
+| ターン8以降かつプレイヤーが fake 可能 | watch 重み増加 |
+| 直近2ターン以内に fake → toast（P+1）成立 | watch を大幅強化（記憶） |
+| 常に10%の確率で | 重みに関係なく完全ランダム（ワイルドカード） |
+| ターン10 | 約60%の確率で完全ランダム |
 
-| 種別 | タイトル | 条件 |
-|---|---|---|
-| BAD END | 無事終電消失 | 酔い≥75 |
-| BAD END | グラス見られおじさん | 疑惑≥100 |
-| BAD END | 空気破壊おじさん | 空気≤0 |
-| SPECIAL END | 乾杯の支配者 | MOOD≥75（途中勝利） |
-| TRUE END | みるくの夜になった | 10ターン生存 + MOOD≥60 + 疑惑<40 |
-| SPECIAL END | 素面の策士 | 10ターン生存 + 酔い<30 |
-| SPECIAL END | 自然体の逃亡者 | 10ターン生存 + 疑惑<30 |
-| NORMAL END | 夜の生還者 | 10ターン生存（上記条件なし） |
+### エンディング種別
+
+| 種別 | 主な条件 |
+|---|---|
+| TRUE END | みるく HP0 / 10ターン後 HP 差で勝利 |
+| SPECIAL END | 10ターン後 HP 同点かつ P 差で勝利 |
+| NORMAL END | ドロー（HP・P 完全同点） |
+| BAD END | プレイヤー HP0 / 判定負け |
 
 ---
 
@@ -175,17 +215,23 @@ RESULT（エンディング表示・スコアコピー）
 [スクロール可能エリア]
   - コピー文「みるくと同時にカードを出して…」
   - カード4枚プレビュー（ware_*.PNG縦型・4列）
-  - ルールメモ（♥ 酔いすぎず ♥ 疑われすぎず ♥ 空気を冷やさず）
-[画面下固定] 「対戦開始！」ボタン（常時表示）
+  - ルールメモ（HP/P/乾杯/飲んだフリ/見張る/チェイサー説明）
+[画面下固定]
+  - 「対戦開始！」ボタン（#start-btn）
+  - 「🏆 実績一覧」ボタン（#ach-open-btn）
 ```
 
 ### 2. ゲーム画面（`#game-screen`）
 
 ```
-[HUD] 酔い / 疑惑 / 空気 / みるく の4ゲージ + TURN表示 + ACTバッジ
-[ステージ上] みるく立ち絵（表情差分） + テルバブル + ヒントカード
-[テーブル]  YOUR CARD フリップ ｜ せーの！｜ MILK フリップ + SFX文字
-[手札] 4種カード × 4列縦型（ware_*.PNG画像・枚数バッジ・使い切りで売切）
+[HUD] みるく HP / プレイヤー HP / プレイヤー P / みるく P（4ゲージ）
+      + TURN表示 + ACTバッジ + #turn-history（ターンアイコン列）
+[直近履歴] #recent-history（直近3ターンのカード組合せとHP増減）
+[ステージ上] みるく立ち絵（表情差分・#char-art）
+            + 表情吹き出し（#expr-bubble）
+            + テルバブル（#tell-bubble / #tell-hint）
+[テーブル]  YOUR CARD フリップ ｜ せーの！｜ MILK フリップ + #sfx-text
+[手札] 4種カード（コスト・残P表示付き、選択不能なものはグレーアウト）
 ```
 
 ### 3. リザルト画面（`#result-screen`）
@@ -194,9 +240,17 @@ RESULT（エンディング表示・スコアコピー）
 [結果枠]
   - BAD/NORMAL/SPECIAL/TRUE END バッジ
   - 称号大文字
-  - タブ3つ: 「事実」（最終ゲージ等）/ 「モノローグ」/ 「みるく視点」
-  - カード画像（決定打のカード）
-[アクション] もう一度 / 結果をコピー（SNS用テキスト）
+  - タブ4つ: 「事実」/ 「履歴」/ 「モノローグ」/ 「みるく視点」
+  - 実績バッジ（新解除分・最大3件）
+[アクション] もう一度（#retry-btn）/ 「Xでポスト」（SNSシェア）
+```
+
+### 4. 実績モーダル（`#ach-modal`）
+
+```
+タイトル画面の「🏆 実績一覧」ボタンで開く
+解除済み実績はカード表示、未解除は「？？？」でロック表示
+#ach-close-btn で閉じる
 ```
 
 ---
@@ -221,19 +275,24 @@ RESULT（エンディング表示・スコアコピー）
 
 1. **`card-mode.js` のゲームロジックは変更しない** ことを前提に HTML/CSS を触る場合、以下のセレクタ・IDは壊してはいけない：
    - `#start-btn`（対戦開始ボタン）
+   - `#ach-open-btn`, `#ach-modal`, `#ach-close-btn`, `#ach-list`（実績モーダル）
    - `#hand`（手札セクション）
    - `.card-slot[data-card="toast|fake|watch|chaser"]`（手札スロット）
-   - `.card-count`（枚数バッジ）
-   - `#drunk-fill`, `#sus-fill`, `#tens-fill`, `#mood-fill`（ゲージバー）
-   - `#drunk-value`, `#sus-value`, `#tens-value`, `#mood-value`（ゲージ数値）
+   - `#player-life-fill`, `#milk-life-fill`（HP ゲージバー）
+   - `#player-point-fill`, `#milk-point-fill`（P ゲージバー）
+   - `#player-life-val`, `#milk-life-val`（HP 数値）
+   - `#player-point-val`, `#milk-point-val`（P 数値）
    - `#turn-display`, `#act-badge`（ターン・ACT表示）
+   - `#turn-history`（ターン履歴アイコン列）
+   - `#recent-history`（直近3ターン履歴）
    - `#char-art`（キャラ画像）
+   - `#expr-bubble`（表情吹き出し）
    - `#card-player`, `#card-milk`（フリップカード）
    - `#tell-bubble`, `#tell-hint`（テルUI）
    - `#sfx-text`（SFX表示）
-   - `#result-frame`, `#result-verdict`, `#result-title-big`, `#result-pov`（リザルト）
-   - `#retry-btn`, `#copy-btn`（リトライ・コピーボタン）
-   - `.tab-btn[data-tab="objective|monologue|cast"]`（リザルトタブ）
+   - `#result-frame`, `#result-verdict`, `#result-title-big`（リザルト）
+   - `#retry-btn`（リトライボタン）
+   - `.tab-btn[data-tab="objective|history|monologue|cast"]`（リザルトタブ）
 
 2. **`assets/ware_*.PNG` `assets/aite_*.PNG` `assets/*.png` を削除しない**
 
@@ -245,10 +304,12 @@ RESULT（エンディング表示・スコアコピー）
 
 6. **`prefers-reduced-motion` 対応** を壊さないこと。
 
+7. **party-mode.* には未コミットの変更が存在する可能性がある** — `card-mode.*` のみを staging してコミットすること。
+
 ---
 
 ## カードモードで使っていない素材（削除不要・今後の拡張用）
 
-- `assets/bg.jpg` — ゲーム背景（現在のカードモードでは未使用）
+- `assets/bg.png` — ゲーム背景（パーティモードで使用）
 - `assets/milk.png` — 別ポーズの立ち絵（通常モード時代の素材）
 - `assets/intro_milk.png` — トリミング前の元画像（`intro_milk_crop.png` の元データ）

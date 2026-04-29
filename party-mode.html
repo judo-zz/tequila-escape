@@ -20,8 +20,89 @@
 <body>
 <div id="app">
 
+  <!-- ── TOP ── -->
+  <div id="guide-screen" class="screen active">
+    <div class="setup-bg" aria-hidden="true">
+      <span class="sbg-spark s1">✦</span>
+      <span class="sbg-spark s2">🍺</span>
+      <span class="sbg-spark s3">✧</span>
+      <span class="sbg-spark s4">🥃</span>
+      <span class="sbg-spark s5">✦</span>
+      <span class="sbg-spark s6">♥</span>
+    </div>
+
+    <div class="party-top-poster">
+      <img class="party-top-character" src="assets/yapi-top.png" alt="" aria-hidden="true">
+      <div class="party-top-speech">誰に飲ませる？勝負しよ♡</div>
+      <img class="party-top-logo" src="assets/party_logo.png" alt="お前が飲め！ PARTY MODE">
+    </div>
+
+    <div class="guide-body party-top-body">
+      <p class="party-top-lead">山札を引くたび、卓上の空気が少しずつ悪くなる。手札でかわして、押しつけて、一番しらふで逃げ切ろう。</p>
+    </div>
+
+    <div class="setup-cta">
+      <button id="guide-start-btn" class="party-start-btn">
+        <span class="btn-spark">✦</span>
+        対戦準備へ
+        <span class="btn-spark">✦</span>
+      </button>
+      <button id="game-help-btn" class="help-open-btn" type="button">ゲームの説明</button>
+      <a href="card-mode.html" class="link-back">カードモードへ</a>
+      <p class="intro-disclaimer">※このゲームはフィクションです。実際の飲酒は無理せず、自分のペースで。</p>
+    </div>
+  </div>
+
+  <div id="help-overlay" class="help-overlay hidden" aria-live="polite">
+    <div class="help-dialog" role="dialog" aria-modal="true" aria-labelledby="help-title">
+      <button id="help-close-btn" class="help-close-btn" type="button" aria-label="説明を閉じる">×</button>
+      <span class="guide-kicker">HOW TO PLAY</span>
+      <h2 id="help-title">さあ、誰が飲む？</h2>
+      <p class="help-lead">山札から引くたびに危機が迫る。手札で運命をかわし、まわりに押しつけろ。</p>
+
+      <div class="help-section-list">
+        <section class="help-section">
+          <h3>対戦モード</h3>
+          <p>VS CPU: 1人で遊ぶ。ローカル対人: スマホ1台を回して 2〜4人で遊ぶ。ターンが変わるたびに「次の人に渡す」画面が出るので、次の人に端末を渡してから「めくる」を押してください。</p>
+        </section>
+        <section class="help-section">
+          <h3>勝利条件</h3>
+          <p>最後に酔いカウンターが一番少ないプレイヤーが勝ち。同点なら引き分け。</p>
+        </section>
+        <section class="help-section">
+          <h3>1ターンの流れ</h3>
+          <p>手札を使う、山札を引く、さらに手札を使う、ターン終了。山札を引くまでは終了できない。</p>
+        </section>
+        <section class="help-section">
+          <h3>危険な山札</h3>
+          <p>テキーラは酔い+1。全員強制テキーラ乾杯は全員が危険。飲みません宣言だけが命綱。</p>
+        </section>
+        <section class="help-section">
+          <h3>手札カード</h3>
+          <p>相手に引かせる、山札を見る、順番を変える。とりあえず一杯は使った時点でターン終了。</p>
+        </section>
+        <section class="help-section">
+          <h3>特殊ルール</h3>
+          <ul class="help-rule-list">
+            <li>回避（dodge）スタックは合算して最大+3。次に実際に被弾した人にまとめて乗る。guard で防いだ場合はスタックが持ち越される。</li>
+            <li>飲みません宣言は全員強制テキーラ乾杯でも個人単位で発動する。</li>
+            <li>倍プッシュ中に全員強制テキーラ乾杯が出ると、被弾する全員が+2を受ける。</li>
+            <li>「全員集合！乾杯！」の中でさらに乾杯カードが出た場合はセーフ扱い。</li>
+            <li>「とりあえず一杯」は使用時点の次の人が対象。その後 reverse しても変わらない。</li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="help-tips">
+        <span>飲みません宣言は温存が吉</span>
+        <span>山札残りが少ないほど空気が重い</span>
+      </div>
+      <button id="help-start-btn" class="help-start-btn" type="button">わかった、準備へ</button>
+    </div>
+  </div>
+
   <!-- ── SETUP ── -->
-  <div id="setup-screen" class="screen active">
+  <div id="setup-screen" class="screen">
     <div class="setup-bg" aria-hidden="true">
       <span class="sbg-spark s1">✦</span>
       <span class="sbg-spark s2">🍺</span>
@@ -39,16 +120,50 @@
 
     <div class="setup-body">
       <div class="setup-section">
+        <label class="setup-label">対戦モード</label>
+        <div class="cpu-count-row" role="group" aria-label="対戦モード">
+          <button class="mode-btn active" data-mode="vs-cpu" aria-pressed="true">VS CPU</button>
+          <button class="mode-btn" data-mode="pvp" aria-pressed="false">ローカル対人</button>
+        </div>
+      </div>
+
+      <div class="setup-section" data-mode-section="vs-cpu">
         <label for="player-name" class="setup-label">あなたの名前</label>
         <input id="player-name" class="setup-input" type="text" maxlength="8" placeholder="名前を入れて" autocomplete="off">
       </div>
 
-      <div class="setup-section">
+      <div class="setup-section character-setup" data-mode-section="vs-cpu">
+        <div class="setup-label">あなたのキャラクター</div>
+        <div id="human-character-list" class="character-grid" role="radiogroup" aria-label="あなたのキャラクター"></div>
+      </div>
+
+      <div class="setup-section" data-mode-section="vs-cpu">
         <label class="setup-label">CPU の人数</label>
         <div class="cpu-count-row" role="group" aria-label="CPU の人数">
           <button class="cpu-count-btn active" data-count="2" aria-pressed="true">CPU 2人</button>
           <button class="cpu-count-btn" data-count="3" aria-pressed="false">CPU 3人</button>
         </div>
+      </div>
+
+      <div class="setup-section character-setup" data-mode-section="vs-cpu">
+        <div class="setup-label">CPU キャラクター</div>
+        <p class="setup-hint">男の子CPUは手強め、女の子CPUはやさしめ。</p>
+        <div id="cpu-character-list" class="character-grid cpu-character-grid" role="group" aria-label="CPU キャラクター"></div>
+      </div>
+
+      <div class="setup-section" data-mode-section="pvp" hidden>
+        <label class="setup-label">プレイ人数</label>
+        <div class="cpu-count-row" role="group" aria-label="プレイ人数">
+          <button class="pvp-count-btn active" data-count="2" aria-pressed="true">2人</button>
+          <button class="pvp-count-btn" data-count="3" aria-pressed="false">3人</button>
+          <button class="pvp-count-btn" data-count="4" aria-pressed="false">4人</button>
+        </div>
+      </div>
+
+      <div class="setup-section" data-mode-section="pvp" hidden>
+        <div class="setup-label">プレイヤー（名前 + キャラクター）</div>
+        <p class="setup-hint">同じキャラクターは選べません。</p>
+        <div id="pvp-player-setup" class="pvp-player-setup"></div>
       </div>
 
       <div class="setup-section">
@@ -85,15 +200,15 @@
     <header class="party-hud">
       <div class="hud-left">
         <div class="hud-round">ROUND <strong id="round-display">1 / 10</strong></div>
-        <div id="deck-count" class="hud-deck">🃏 <span id="deck-num">40</span></div>
-        <div class="hud-deck">🍺 <span id="tequila-num">10</span></div>
+        <div id="deck-count" class="hud-deck">🃏 <span id="deck-num">41</span></div>
+        <div class="hud-deck">🍺 <span id="tequila-num">11</span></div>
       </div>
       <div id="effect-flags" class="effect-flags"></div>
       <button id="top-btn" class="top-btn" type="button">TOP</button>
     </header>
 
     <main class="party-board">
-      <!-- Players row -->
+      <!-- Opponent row -->
       <div id="players-row" class="players-row"></div>
 
       <!-- Stage: whose turn / log -->
@@ -116,6 +231,8 @@
         <div id="game-log" class="game-log" aria-live="polite" aria-atomic="false"></div>
       </div>
     </main>
+
+    <div id="human-status" class="human-status" aria-live="polite"></div>
 
     <!-- Hand (visible only during player's turn) -->
     <div id="hand-area" class="hand-area hidden">
@@ -153,6 +270,17 @@
       </div>
     </div>
 
+    <!-- Pass overlay (PvP mode) -->
+    <div id="pass-overlay" class="pass-overlay hidden" aria-live="polite">
+      <div class="pass-box">
+        <div class="pass-kicker">PASS</div>
+        <img id="pass-avatar" class="pass-avatar" src="" alt="" aria-hidden="true">
+        <div id="pass-name" class="pass-name"></div>
+        <div id="pass-note" class="pass-note">他の人に見られてないか確認したら、めくろう。</div>
+        <button id="pass-reveal-btn" class="pass-reveal-btn" type="button">準備OK、めくる</button>
+      </div>
+    </div>
+
   </div>
 
   <!-- ── RESULT ── -->
@@ -164,7 +292,9 @@
       <div id="result-rankings" class="result-rankings"></div>
     </div>
     <div class="result-actions">
-      <button id="retry-btn" class="party-start-btn">もう一度</button>
+      <button id="play-again-btn" class="party-start-btn">同じ設定でもう一度</button>
+      <a id="post-x-btn" class="party-share-btn" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener noreferrer">Xでポスト</a>
+      <button id="retry-btn" class="party-secondary-btn">タイトルへ</button>
       <a href="card-mode.html" class="link-back">カードモードへ</a>
     </div>
   </div>

@@ -27,15 +27,26 @@
 |---|---:|---|
 | `MAX_TURNS` | 10 | 最大ターン数 |
 | `LIFE_MAX` | 5 | HP 最大値 |
-| `POINT_MAX` | 6 | P 最大値 |
+| `POINT_MAX` | 8 | P 最大値 |
 | `CARD_COSTS.toast` | 0 | 乾杯する |
 | `CARD_COSTS.fake` | 1 | 飲んだフリ |
-| `CARD_COSTS.watch` | 3 | 見張る |
+| `CARD_COSTS.watch` | 2 | 見張る |
 | `CARD_COSTS.chaser` | 2 | チェイサー |
 | `CHASER_HEAL` | 2 | チェイサー回復量 |
 | `ACHIEVEMENT_STORAGE_KEY` | `tequilaEscape.cardMode.achievements.v2` | 実績保存キー |
 
-演出タイミングは `FLIP_MS`、`REVEAL_HOLD_MS`、`TELL_HOLD_MS`、`COMMIT_MS`、`REVEAL_PRE_FLIP_MS`、`ACT_BANNER_MS` で管理する。
+演出タイミング定数（ms）:
+
+| 定数 | 値 | 用途 |
+|---|---:|---|
+| `FLIP_MS` | 580 | カードフリップアニメーション時間 |
+| `REVEAL_HOLD_MS` | 1200 | フリップ後のカード表示保持時間 |
+| `TELL_HOLD_MS` | 180 | テルフェーズの最低表示時間 |
+| `COMMIT_MS` | 400 | コミット演出の表示時間 |
+| `REVEAL_PRE_FLIP_MS` | 600 | フリップ前の待機時間（基準値。危険時は動的に延長） |
+| `ACT_BANNER_MS` | 640 | ACT バナーの表示時間 |
+
+`enterReveal()` では `REVEAL_PRE_FLIP_MS` の代わりに動的遅延を使用する。プレイヤーまたはみるくの HP が 1 以下のとき最大 1100ms、2 以下のとき 850ms、ターン 8 以降は 750ms に延長される。
 
 ## 状態モデル
 
@@ -45,8 +56,8 @@
 |---|---|
 | `fsm` | 現在の FSM 状態 |
 | `turn` | 現在ターン。1 始まり |
-| `player` | `{ life, point }` |
-| `milk` | `{ life, point }` |
+| `player` | `{ life:5, point:1 }` ← 初期値 |
+| `milk` | `{ life:5, point:1 }` ← 初期値 |
 | `gauges` | 旧 HUD 名称との互換用。`player.life` などを同期 |
 | `playerCard` / `milkCard` | このターンのカード ID |
 | `tell` | 予告結果 `{ type, honest, willPlay, chaserSpecial, honestRate }` |
@@ -67,8 +78,8 @@
 | ID | 表示名 | コスト | 基本効果 | 選択可否 |
 |---|---|---:|---|---|
 | `toast` | 乾杯する | 0 | 使用者 HP-1 / P+1 | 常に可。P 最大時も選べるが P は増えない |
-| `fake` | 飲んだフリ | 1 | 基本効果なし。HP を失わずにターンを流す | P が 1 以上 |
-| `watch` | 見張る | 3 | 相手の fake をカウンター | P が 3 以上 |
+| `fake` | 飲んだフリ | 1 | HP を失わずターンを流す。相手が `toast` なら追加で自分 P+1 | P が 1 以上 |
+| `watch` | 見張る | 2 | 相手の fake をカウンター（相手 HP-2 / 自分 P+1） | P が 2 以上 |
 | `chaser` | チェイサー | 2 | 使用者 HP+2 | P が 2 以上、かつ HP が最大未満 |
 
 コストは `resolveBattleTurn()` 冒頭で双方とも先に支払われる。その後、乾杯、チェイサー、カウンター効果を順に適用する。HP/P は `clamp()` により 0 から最大値に収まる。
@@ -87,8 +98,9 @@
 補足:
 
 - `watch` が `fake` を捕まえた場合、watch 側は P+1、fake 側は HP-2。
-- `watch` のコスト 3 は先払いのため、カウンター成功時の実質差分は P-2。
-- `fake` はコスト以外の基本効果を持たない。
+- `watch` のコスト 2 は先払いのため、カウンター成功時の実質差分は P-1（cost-2 + counter+1）。
+- `fake` vs `toast` は追加で自分 P+1。コスト 1 と相殺され、HP 保護のみが実質的なリターンとなる。
+- `fake` vs `watch` / `fake` / `chaser` の場合は追加 P+1 は発生しない。
 - `chaser` は HP 最大時には選べない。
 
 ## 予告システム
@@ -127,6 +139,9 @@
 - みるく HP が 2 以下なら `chaser` を大きく強める。
 - プレイヤーが同じカードを 2 回以上連続使用すると、`watch` を最大 2.0 まで加算補正する。
 - 8ターン目以降、プレイヤーが `fake` を出せる P を持つ場合も `watch` を最大 2.0 まで加算補正する。
+- 直近 2 ターンでプレイヤーが `fake` を使用し、かつみるくが `watch` を出していない場合、`watch` 重みを最大 2.8 まで大きく加算する（記憶メカニズム）。
+- 10% の確率で重み計算を無視して合法手からランダム選択する（パターン読みへの対策）。
+- 最終ターン（ターン 10）では 60% の確率で完全ランダムに選択する。
 
 ## FSM とターン進行
 
@@ -241,8 +256,8 @@ INTRO
 | `ACH_MILK_KO` | 飲ませ切り | みるく HP0 |
 | `ACH_POINT_WIN` | 判定の支配者 | 10ターン HP 同点から P 差勝ち |
 | `ACH_PERFECT_HP` | 無傷生還 | HP 満タン勝利 |
-| `ACH_COUNTER_HIT` | 監視成功 | watch vs fake 成功 |
-| `ACH_GOT_COUNTERED` | 監視された夜 | fake vs watch を受ける |
+| `ACH_COUNTER_HIT` | 見張り成功 | watch vs fake 成功 |
+| `ACH_GOT_COUNTERED` | 見張られた夜 | fake vs watch を受ける |
 | `ACH_FULL_COURSE` | 生存証明 | 10ターン完走 |
 | `ACH_ALL_CARDS` | 全カード採用 | 4カードすべて使用 |
 | `ACH_DOUBLE_COUNTER` | 完璧読み | watch vs fake 2回以上 |
@@ -269,12 +284,19 @@ INTRO
 |---|---|---|
 | `tuzyou` | `assets/optimized/tuzyou.webp` | 通常 |
 | `utagai` | `assets/optimized/utagai.webp` | プレイヤー低 HP、被カウンターなど |
-| `bikkuri` | `assets/optimized/bikkuri.webp` | みるく低 HP、監視成功など |
+| `bikkuri` | `assets/optimized/bikkuri.webp` | みるく低 HP、見張り成功など |
 | `horoyoi` | `assets/optimized/horoyoi.webp` | プレイヤー P 高め、みるく P 増加など |
 | `fuman` | `assets/optimized/fuman.webp` | みるく P 高め、プレイヤー P 大幅消費など |
 | `deisui` | `assets/optimized/deisui.webp` | 現行ロジックでは直接選択されない |
 
 `faceFromGauges()` はターン開始時の状態表情、`faceFromDeltas()` は結果反応表情を決める。カード組み合わせごとのコピーやトーンは `MATCH_EFFECTS`、SFX テキストは `SFX_LABELS` に定義されている。
+
+表情が変化した際（`setCharFace()` で `img.src` が変わった時）、以下の演出が同時に発生する:
+
+- `face-swap` クラスで `.char-art` が `scale(1.08)` バウンスアニメーション
+- `EXPR_BUBBLE` マップから感情テキスト（`！` `♥` `…？` など）を取得し、`#expr-bubble` に表示（1秒でフェードアウト）
+
+`EXPR_BUBBLE` のキーは `utagai` / `bikkuri` / `horoyoi` / `fuman` / `deisui` / `kibishi`。`tuzyou`（通常）は表示しない。
 
 ## 画像読み込み
 
@@ -292,7 +314,7 @@ JS が直接参照する主な ID/クラス:
 - `.card-slot[data-card="toast|fake|watch|chaser"]`
 - `#drunk-fill`, `#sus-fill`, `#tens-fill`, `#mood-fill`
 - `#drunk-value`, `#sus-value`, `#tens-value`, `#mood-value`
-- `#turn-display`, `#act-badge`, `#turn-history`
+- `#turn-display`, `#act-badge`, `#turn-history`, `#recent-history`
 - `#tell-bubble`, `#tell-hint`
 - `#card-player`, `#card-milk`, `#vs-label`
 - `#sfx-text`
@@ -301,6 +323,8 @@ JS が直接参照する主な ID/クラス:
 - `.tab-btn[data-tab]`
 - `#retry-btn`, `#post-x-btn`
 - `#toast-msg`
+- `#expr-bubble`（キャラ表情変化時の感情バブル）
+- `#ach-modal`, `#ach-list`, `#ach-open-btn`, `#ach-close-btn`（実績一覧モーダル）
 
 HTML 構造を変える場合は、`querySelector()` が親子関係に依存している箇所にも注意する。特に reveal caption は `flipCardEl.parentElement.querySelector('.reveal-caption')` で取得している。
 
@@ -309,23 +333,23 @@ HTML 構造を変える場合は、`querySelector()` が親子関係に依存し
 現行バランスは、HP と P の交換を中心にした短期戦。
 
 - `toast`: 無料で P を作るが HP を失うため、序盤の選択肢拡張と終盤の自滅リスクを同時に持つ。
-- `fake`: 1P で HP を守れるが、`watch` に当たると HP-2 で大きく崩れる。
-- `watch`: 3P の重い投資。成功時は相手 HP-2 と自分 P+1 でリターンが大きい。
+- `fake`: 1P で HP を守れるが、`watch` に当たると HP-2 で大きく崩れる。`toast` と合わせると P コストが実質相殺されるため、「みるくが飲む」と読んだターンは積極的に機能する。
+- `watch`: 2P でカウンター。成功時は相手 HP-2 と自分 P+1、実質差分 P-1。空振りでも損失は 2P に留まる。
 - `chaser`: 2P で HP+2。生存力を大きく戻すが、勝利判定用の P を減らす。
+- 初期 P = 1: 1ターン目から `fake` が選べるため、序盤から択が発生する。
 - 予告: 序盤は学習補助、終盤はブラフ混じりの読み合いとして機能する。
-- CPU: プレイヤーの連打や終盤の fake 可能性に対して watch を強め、単純な連打を少し咎める。
+- CPU: プレイヤーの連打・直近の fake 成功・終盤の fake 可能性に対して watch を強め、さらにランダム性（ワイルドカード 10%・最終ターン 60%）で単純なパターン読みを抑制する。
 
 ## 今後の調整候補
 
 - `maybeShowActBanner()` が現行フローで呼ばれていないため、ACT バナーを復活させるか、未使用コードとして整理する。
 - カード枚数制を入れるか、現行の無制限コスト制に合わせて称号文言から「使い切った」「3枚全て」を外す。
-- `GAME_GUIDE.md` と `HANDOFF.md` の旧ゲージ制説明を HP/P 制に更新する。
 - `deisui` 表情の使用条件を追加するか、未使用素材として明記する。
 - 予告の信頼度を固定ターン制だけでなく、みるくの P/HP、連続行動、直前の予告的中状況に連動させる。
 - 10ターン判定の負け理由をリザルトタイトルで HP 差負け/P 差負けに分ける。
-- 実績一覧画面やリセット機能を追加する。
-- CPU 重みの上限 2.0 により、補正が弱く感じる場合は終盤 watch 補正または低 HP chaser 補正を再調整する。
-- `TELL_HOLD_MS = 220` はかなり短いが、予告は CARD_SELECT 中も残る設計。演出の見え方を重視するなら TELL_PHASE の滞在時間を伸ばす。
+- 実績一覧のリセット機能を追加する。
+- CPU ワイルドカード（10%）や最終ターンランダム（60%）の確率を調整し、難易度バランスを最適化する。
+- `#recent-history` の表示内容を拡充する（みるく側 HP/P 変化も含める、または展開するインタラクション）。
 
 ## 起動・確認
 
