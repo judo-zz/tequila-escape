@@ -160,9 +160,11 @@ const GENERATED_ASSETS = {
 // ── State ──
 let state = null;
 
-function buildDeck() {
+function buildDeck(pvp = false) {
+  const excluded = pvp ? new Set() : new Set(['kanpai', 'tequila_party']);
   const deck = [];
   for (const c of DECK_CARDS) {
+    if (excluded.has(c.id)) continue;
     for (let i = 0; i < c.count; i++) deck.push({ ...c });
   }
   return shuffle(deck);
@@ -216,7 +218,7 @@ function initState(playerName, cpuCount, maxCycles, humanCharacter, cpuCharacter
   return {
     players,
     actionPool,
-    deck:           buildDeck(),
+    deck:           buildDeck(false),
     deckDiscard:    [],
     actionDiscard:  [],
     turnOrder:      players.map((_, i) => i),
@@ -249,7 +251,7 @@ function initStatePvp(seats, maxCycles) {
   return {
     players,
     actionPool,
-    deck: buildDeck(),
+    deck: buildDeck(true),
     deckDiscard: [],
     actionDiscard: [],
     turnOrder: players.map((_, i) => i),
