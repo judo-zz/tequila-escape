@@ -19,7 +19,7 @@ const ACTION_DEFS = {
   guard:   { id:'guard',   label:'飲みません宣言',  icon:'拒', effect:'テキーラ回避+1枚',  accent:'--accent-guard'   },
 };
 
-const ACTION_COUNTS = { reverse:4, force:5, target:5, double:4, peek:5, skip:4, dodge:3, guard:2 };
+const ACTION_COUNTS = { reverse:4, force:4, target:4, double:4, peek:4, skip:4, dodge:4, guard:4 };
 
 const CHARACTERS = [
   { id: 'koji',  name: 'こーじ',  avatar: 'assets/koji.png',      gender: 'male',   cpuLevel: 'hard' },
