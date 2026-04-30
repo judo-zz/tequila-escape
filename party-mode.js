@@ -1591,10 +1591,10 @@ function startGame() {
   const maxCycles = parseInt(document.querySelector('.round-btn.active')?.dataset.cycles || '2');
 
   if (setupMode === 'pvp') {
-    const seats = pvpSeats.slice(0, pvpCount).map((s, i) => ({
-      name: (s.name?.trim() || `P${i + 1}`).slice(0, 8),
-      character: getCharacter(s.characterId || pvpFallbackCharacter(i)),
-    }));
+    const seats = pvpSeats.slice(0, pvpCount).map((s, i) => {
+      const character = getCharacter(s.characterId || pvpFallbackCharacter(i));
+      return { name: character.name, character };
+    });
     state = initStatePvp(seats, maxCycles);
     state.phase = 'PASS';
   } else {
@@ -1660,15 +1660,7 @@ function renderPvpPlayerSetup() {
     label.className = 'pvp-seat-label';
     label.textContent = labels[i];
 
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.maxLength = 8;
-    input.placeholder = labels[i];
-    input.value = seat.name;
-    input.autocomplete = 'off';
-    input.addEventListener('input', () => { pvpSeats[i].name = input.value; });
-
-    head.append(label, input);
+    head.append(label);
 
     // キャラ選択グリッド
     const grid = document.createElement('div');
