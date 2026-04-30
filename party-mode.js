@@ -73,6 +73,29 @@ const EVENT_COPY = {
   waiting: { tone:'waiting', kicker:'NEXT DRAW', title:'山札',          copy:'一枚引くまで、運命は伏せられている。' },
 };
 
+const GENERATED_ASSETS = {
+  eventArt: {
+    safe: 'assets/generated/draw-safe.png',
+    tequila: 'assets/generated/draw-tequila.png',
+    kanpai: 'assets/generated/draw-kanpai.png',
+    tequilaParty: 'assets/generated/draw-tequila-party.png',
+  },
+  cutinArt: {
+    safe: 'assets/generated/effect-safe.png',
+    tequila: 'assets/generated/effect-tequila.png',
+    kanpai: 'assets/generated/effect-win.png',
+    tequilaParty: 'assets/generated/effect-tequila.png',
+    guard: 'assets/generated/effect-guard.png',
+    win: 'assets/generated/effect-win.png',
+  },
+  resultBadge: {
+    winner: 'assets/generated/badge-winner.png',
+    survivor: 'assets/generated/badge-survivor.png',
+    victim: 'assets/generated/badge-victim.png',
+    drunkKing: 'assets/generated/badge-drunk-king.png',
+  },
+};
+
 // ── State ──
 let state = null;
 
@@ -293,6 +316,7 @@ function setLastEvent(kind, playerName, title = null, copy = null) {
   state.eventSerial++;
   state.lastEvent = {
     ...base,
+    kind,
     title: title || base.title,
     copy: copy || (playerName ? `${playerName} — ${base.copy}` : base.copy),
     serial: state.eventSerial,
@@ -341,6 +365,7 @@ function resolveDrawCard(card, player, kanpaiNested = false) {
   if (card.id !== 'tequila_party' && consumeNoDrinkGuard(player, card.id)) return;
 
   if (card.id === 'safe') {
+    state.dodgeStack = 0;
     addLog(`${player.name} → セーフ ✅`, 'log-safe');
     setLastEvent('safe', player.name);
     showSfx('セーフ！');
@@ -372,27 +397,24 @@ function resolveDrawCard(card, player, kanpaiNested = false) {
         applyTequilaHit(p, gain, '強制テキーラ乾杯！');
       }
     }
-    if (!firstVictim) {
-      state.doublePushActive = false;
-      state.dodgeStack = 0;
-    }
+    state.doublePushActive = false;
+    state.dodgeStack = 0;
     setLastEvent('tequilaParty', player.name);
     showCutin('全員強制テキーラ乾杯！', '逃げ場なし');
     return;
   }
 
   if (card.id === 'kanpai' && !kanpaiNested) {
+    // 乾杯はテキーラではないのでdodgeStackをリセット
+    state.dodgeStack = 0;
     addLog('🥂 全員集合！乾杯！ — 全員引く！', 'log-all');
     setLastEvent('kanpai', player.name);
     showCutin('全員集合！乾杯！', 'みんな引け！');
     for (const p of state.players) {
       const c = drawFromDeck();
       if (!c) continue;
-      // 各ドローを通常解決（ただし連鎖しない）
       resolveDrawCard(c, p, /* kanpaiNested= */ true);
     }
-    // doublePush / dodgeStack は resolveDrawCard 内で被弾者が出た時点でクリア済み。
-    // 全員 guard / 全員 safe の場合はスタックを持ち越す（tequila_party と統一）。
     return;
   }
 
@@ -856,6 +878,8 @@ function showCutin(title, kicker) {
   el.classList.remove('hidden');
   $('cutin-title').textContent  = title;
   $('cutin-kicker').textContent = kicker;
+  const art = cutinArtForTitle(title);
+  if (art) el.style.setProperty('--cutin-art', `url("${art}")`);
   announce(`${kicker} ${title}`);
   el.classList.remove('show');
   void el.offsetWidth;
@@ -865,6 +889,14 @@ function showCutin(title, kicker) {
     el.classList.remove('show');
     setTimeout(() => el.classList.add('hidden'), 200);
   }, 1400);
+}
+
+function cutinArtForTitle(title) {
+  if (title.includes('セーフ')) return GENERATED_ASSETS.cutinArt.safe;
+  if (title.includes('飲まない') || title.includes('飲みません')) return GENERATED_ASSETS.cutinArt.guard;
+  if (title.includes('乾杯') && !title.includes('強制テキーラ')) return GENERATED_ASSETS.cutinArt.kanpai;
+  if (title.includes('勝') || title.includes('RESULT')) return GENERATED_ASSETS.cutinArt.win;
+  return GENERATED_ASSETS.cutinArt.tequila;
 }
 
 function showPeek(card) {
@@ -1161,6 +1193,10 @@ function renderEventCard() {
   const card = $('event-card');
   if (!card) return;
   card.className = `event-card event-${event.tone}`;
+  const art = eventArtFor(event);
+  card.classList.toggle('has-art', Boolean(art));
+  if (art) card.style.setProperty('--event-art', `url("${art}")`);
+  else card.style.removeProperty('--event-art');
   $('event-card-kicker').textContent = event.kicker;
   $('event-card-title').textContent = event.title;
   $('event-card-copy').textContent = event.copy;
@@ -1171,6 +1207,14 @@ function renderEventCard() {
     void card.offsetWidth;
     card.classList.add('is-flipping');
   }
+}
+
+function eventArtFor(event) {
+  if (event.kind === 'tequilaParty') return GENERATED_ASSETS.eventArt.tequilaParty;
+  if (event.kind === 'kanpai') return GENERATED_ASSETS.eventArt.kanpai;
+  if (event.kind === 'safe') return GENERATED_ASSETS.eventArt.safe;
+  if (event.kind === 'tequila') return GENERATED_ASSETS.eventArt.tequila;
+  return null;
 }
 
 function renderHand() {
@@ -1337,6 +1381,15 @@ function showResultScreen(sorted) {
   const human = isPvp ? null : state.players.find(p => p.isHuman);
   const humanRank = human ? sorted.findIndex(p => p.id === human.id) + 1 : 0;
   const worst = sorted[sorted.length - 1];
+  const badge = $('result-badge');
+  if (badge) {
+    const src = !isPvp && humanRank === sorted.length
+      ? GENERATED_ASSETS.resultBadge.victim
+      : (winners.some(p => !isPvp && p.isHuman)
+        ? GENERATED_ASSETS.resultBadge.survivor
+        : (winners.length === 1 ? GENERATED_ASSETS.resultBadge.winner : GENERATED_ASSETS.resultBadge.drunkKing));
+    badge.src = src;
+  }
   if (summaryEl) {
     if (isPvp) {
       summaryEl.textContent = `${worst.name} が一番飲んだ夜。お疲れさま。`;
