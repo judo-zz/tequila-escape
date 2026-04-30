@@ -1721,7 +1721,7 @@ function startGame() {
   if (setupMode === 'pvp') {
     const seats = pvpSeats.slice(0, pvpCount).map((s, i) => {
       const character = getCharacter(s.characterId || pvpFallbackCharacter(i));
-      return { name: character.name, character };
+      return { name: (s.name?.trim() || character.name).slice(0, 8), character };
     });
     state = initStatePvp(seats, maxCycles);
     state.phase = 'PASS';
@@ -1788,7 +1788,15 @@ function renderPvpPlayerSetup() {
     label.className = 'pvp-seat-label';
     label.textContent = labels[i];
 
-    head.append(label);
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.maxLength = 8;
+    input.placeholder = getCharacter(seat.characterId).name;
+    input.value = seat.name;
+    input.autocomplete = 'off';
+    input.addEventListener('input', () => { pvpSeats[i].name = input.value; });
+
+    head.append(label, input);
 
     // キャラ選択グリッド
     const grid = document.createElement('div');
