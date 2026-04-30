@@ -2,9 +2,9 @@
 
 // ── カード定義 ──
 const DECK_CARDS = [
-  { id: 'safe',          label: 'セーフ',               count: 27, type: 'deck' },
-  { id: 'tequila',       label: 'テキーラ',              count: 10, type: 'deck' },
-  { id: 'kanpai',        label: '全員集合！乾杯！',       count:  3, type: 'deck' },
+  { id: 'safe',          label: 'セーフ',               count: 17, type: 'deck' },
+  { id: 'tequila',       label: 'テキーラ',              count:  8, type: 'deck' },
+  { id: 'kanpai',        label: '全員集合！乾杯！',       count:  2, type: 'deck' },
   { id: 'tequila_party', label: '全員強制テキーラ乾杯',   count:  1, type: 'deck' },
 ];
 
@@ -1716,7 +1716,7 @@ function createCharacterButton(character, role) {
 }
 
 function startGame() {
-  const maxCycles = parseInt(document.querySelector('.round-btn.active')?.dataset.cycles || '2');
+  const maxCycles = 2;
 
   if (setupMode === 'pvp') {
     const seats = pvpSeats.slice(0, pvpCount).map((s, i) => {
