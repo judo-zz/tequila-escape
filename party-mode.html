@@ -24,7 +24,7 @@
   <div id="guide-screen" class="screen active">
     <div class="setup-bg" aria-hidden="true">
       <span class="sbg-spark s1">✦</span>
-      <span class="sbg-spark s2">🍺</span>
+      <span class="sbg-spark s2">🥃</span>
       <span class="sbg-spark s3">✧</span>
       <span class="sbg-spark s4">🥃</span>
       <span class="sbg-spark s5">✦</span>
@@ -32,7 +32,7 @@
     </div>
 
     <div class="party-top-poster">
-      <img class="party-top-character" src="assets/yapi-top.png" alt="" aria-hidden="true">
+      <img class="party-top-character" src="assets/main.png" alt="" aria-hidden="true">
       <div class="party-top-speech">誰に飲ませる？勝負しよ♡</div>
       <img class="party-top-logo" src="assets/party_logo.png" alt="お前が飲め！ PARTY MODE">
     </div>
@@ -105,7 +105,7 @@
   <div id="setup-screen" class="screen">
     <div class="setup-bg" aria-hidden="true">
       <span class="sbg-spark s1">✦</span>
-      <span class="sbg-spark s2">🍺</span>
+      <span class="sbg-spark s2">🥃</span>
       <span class="sbg-spark s3">✧</span>
       <span class="sbg-spark s4">🥃</span>
       <span class="sbg-spark s5">✦</span>
@@ -152,6 +152,21 @@
       </div>
 
       <div class="setup-section" data-mode-section="pvp" hidden>
+        <label class="setup-label">ゲームルール</label>
+        <div class="rule-choice-row" role="group" aria-label="ゲームルール">
+          <button class="pvp-gametype-btn active" data-gametype="standard" aria-pressed="true">通常モード</button>
+          <button class="pvp-gametype-btn" data-gametype="elimination" aria-pressed="false">脱落モード</button>
+        </div>
+        <div id="pvp-hp-options" class="hp-choice-row" role="group" aria-label="脱落モードのHP" hidden>
+          <span class="hp-choice-label">HP</span>
+          <button class="pvp-hp-btn" data-hp="3" aria-pressed="false">3</button>
+          <button class="pvp-hp-btn" data-hp="4" aria-pressed="false">4</button>
+          <button class="pvp-hp-btn active" data-hp="5" aria-pressed="true">5</button>
+        </div>
+        <p id="pvp-gametype-hint" class="setup-hint">2周プレイ。一番酔いが少なかったプレイヤーの勝ち。</p>
+      </div>
+
+      <div class="setup-section" data-mode-section="pvp" hidden>
         <label class="setup-label">プレイ人数</label>
         <div class="cpu-count-row" role="group" aria-label="プレイ人数">
           <button class="pvp-count-btn active" data-count="2" aria-pressed="true">2人</button>
@@ -162,13 +177,13 @@
 
       <div class="setup-section" data-mode-section="pvp" hidden>
         <div class="setup-label">プレイヤー（名前 + キャラクター）</div>
-        <p class="setup-hint">同じキャラクターは選べません。</p>
+        <p class="setup-hint">同じキャラクターを選んでもOKです。</p>
         <div id="pvp-player-setup" class="pvp-player-setup"></div>
       </div>
 
 <div class="setup-rules">
         <div class="rule-item">🃏 山札を全部引いたら1周</div>
-        <div class="rule-item">🍺 周を重ねるほどテキーラが増える</div>
+        <div class="rule-item">🥃 周を重ねるほどテキーラが増える</div>
         <div class="rule-item">🏆 一番素面だったやつの勝ち</div>
       </div>
     </div>
@@ -189,13 +204,30 @@
 
     <!-- HUD -->
     <header class="party-hud">
-      <div class="hud-left">
-        <div class="hud-round"><strong id="round-display">1周目 / 2周</strong></div>
-        <div id="deck-count" class="hud-deck">🃏 <span id="deck-num">41</span></div>
-        <div class="hud-deck">🍺 <span id="tequila-num">11</span></div>
+      <div class="hud-stats" aria-label="ゲーム状況">
+        <div class="hud-stat hud-round">
+          <span class="hud-label">ROUND</span>
+          <strong id="round-display">1 / 2</strong>
+          <small>パーティ</small>
+        </div>
+        <div id="deck-count" class="hud-stat hud-deck">
+          <span class="hud-label">山札残り</span>
+          <strong><span aria-hidden="true">🃏</span> <span id="deck-num">41</span></strong>
+        </div>
+        <div class="hud-stat hud-tequila">
+          <span class="hud-label">テキーラ残り</span>
+          <strong><span aria-hidden="true">🥃</span> <span id="tequila-num">11</span></strong>
+        </div>
+        <div class="hud-stat hud-danger">
+          <span class="hud-label">危険度</span>
+          <strong id="danger-num">26%</strong>
+          <span class="danger-meter" aria-hidden="true"><span id="danger-fill"></span></span>
+        </div>
       </div>
       <div id="effect-flags" class="effect-flags"></div>
-      <button id="top-btn" class="top-btn" type="button">TOP</button>
+      <div class="hud-actions">
+        <button id="top-btn" class="top-btn" type="button">TOP</button>
+      </div>
     </header>
 
     <main class="party-board">
@@ -264,7 +296,7 @@
     <!-- Pass overlay (PvP mode) -->
     <div id="pass-overlay" class="pass-overlay hidden" aria-live="polite">
       <div class="pass-box">
-        <div class="pass-kicker">PASS</div>
+        <div id="pass-kicker" class="pass-kicker">PASS</div>
         <img id="pass-avatar" class="pass-avatar" src="" alt="" aria-hidden="true">
         <div id="pass-name" class="pass-name"></div>
         <div id="pass-note" class="pass-note">他の人に見られてないか確認したら、めくろう。</div>

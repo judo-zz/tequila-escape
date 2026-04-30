@@ -21,7 +21,11 @@ const ACTION_DEFS = {
 
 const ACTION_COUNTS = { reverse:4, force:4, target:4, double:4, peek:4, skip:4, dodge:4, guard:4 };
 
+const DEFAULT_ELIMINATION_HP = 5;
+
 const CHARACTERS = [
+  { id: 'aiA',   name: 'アイA',    avatar: 'assets/aiA.png',       gender: 'female', cpuLevel: 'normal', skill: 'aiA_player'    },
+  { id: 'aiB',   name: 'アイB',    avatar: 'assets/aiB.png',       gender: 'male',   cpuLevel: 'normal', skill: 'aiB_player'    },
   { id: 'koji',  name: 'こーじ',  avatar: 'assets/koji.png',      gender: 'male',   cpuLevel: 'hard',   skill: 'koji_cold'     },
   { id: 'ryota', name: 'りょーた', avatar: 'assets/ryota.png',     gender: 'male',   cpuLevel: 'normal', skill: 'ryota_yolo'    },
   { id: 'osho',  name: 'おしょー', avatar: 'assets/osho.png',      gender: 'male',   cpuLevel: 'hard',   skill: 'osho_tricky'   },
@@ -30,7 +34,9 @@ const CHARACTERS = [
   { id: 'milk',  name: 'みるく',   avatar: 'assets/milk-card.png', gender: 'female', cpuLevel: 'easy',   skill: 'milk_reserve'  },
 ];
 
-const DEFAULT_HUMAN_CHARACTER_ID = 'yapi';
+const VS_CPU_HUMAN_CHARACTER_IDS = ['aiA', 'aiB'];
+const CPU_CHARACTER_IDS = ['koji', 'ryota', 'osho', 'nana', 'yapi', 'milk'];
+const DEFAULT_HUMAN_CHARACTER_ID = 'aiA';
 const DEFAULT_CPU_CHARACTER_IDS = ['milk', 'nana', 'koji'];
 
 const CPU_LEVELS = {
@@ -86,7 +92,7 @@ const CPU_FLAVOR = {
   },
   ryota_yolo: {
     draw:    ['「えいっ！」'],
-    safe:    ['「もう1枚いくぜ！」', '「うぇーい🍺」'],
+    safe:    ['「もう1枚いくぜ！」', '「うぇーい🥃」'],
     tequila: ['「うっ……でもいくぜ！」'],
     chain:   ['「まだまだ！」'],
     target:  ['「お前飲め〜！」'],
@@ -124,6 +130,8 @@ let selectedCpuCharacterIds = [];
 let setupMode = 'vs-cpu';
 let pvpCount = 2;
 let pvpSeats = []; // [{ name: string, characterId: string }]
+let pvpGameType = 'standard'; // 'standard' | 'elimination'
+let pvpInitialHp = DEFAULT_ELIMINATION_HP;
 
 const EVENT_COPY = {
   safe:    { tone:'safe',    kicker:'SAFE',   title:'セーフ',           copy:'息を止めてめくった一枚は、まだ夜を壊さない。' },
@@ -189,7 +197,8 @@ function defaultCpuCharacters(count, humanCharacterId = selectedHumanCharacterId
   const preferred = DEFAULT_CPU_CHARACTER_IDS
     .map(getCharacter)
     .filter(c => c.id !== humanCharacterId);
-  const rest = CHARACTERS.filter(c => c.id !== humanCharacterId && !preferred.some(p => p.id === c.id));
+  const cpuCharacters = CPU_CHARACTER_IDS.map(getCharacter);
+  const rest = cpuCharacters.filter(c => c.id !== humanCharacterId && !preferred.some(p => p.id === c.id));
   return [...preferred, ...rest].slice(0, count);
 }
 
@@ -234,6 +243,8 @@ function initState(playerName, cpuCount, maxCycles, humanCharacter, cpuCharacter
     forcedDrawPending: null,
     targetPendingFrom: null,
     hasDrawnThisTurn: false,
+    handRevealed: true,
+    kanpaiPending: [],
     lastEvent: EVENT_COPY.waiting,
     eventSerial: 0,
     // SETUP | PLAYER_TURN | CPU_TURN | RESOLVING | FORCED_DRAW | PASS | RESULT
@@ -244,9 +255,10 @@ function initState(playerName, cpuCount, maxCycles, humanCharacter, cpuCharacter
   };
 }
 
-function initStatePvp(seats, maxCycles) {
+function initStatePvp(seats, maxCycles, gameType = 'standard', initialHp = DEFAULT_ELIMINATION_HP) {
   const actionPool = buildActionPool(seats.length);
   const players = seats.map((s, i) => createPlayer(`p${i}`, s.name, true, s.character));
+  players.forEach(p => { p.hp = initialHp; });
   dealHands(players, actionPool);
   return {
     players,
@@ -267,11 +279,16 @@ function initStatePvp(seats, maxCycles) {
     forcedDrawPending: null,
     targetPendingFrom: null,
     hasDrawnThisTurn: false,
+    handRevealed: false,
+    kanpaiPending: [],
+    eliminationCount: 0,
     lastEvent: EVENT_COPY.waiting,
     eventSerial: 0,
     phase: 'SETUP',
     log: [], logSeq: 0,
     gameMode: 'pvp',
+    gameType,
+    initialHp,
   };
 }
 
@@ -288,6 +305,9 @@ function createPlayer(id, name, isHuman, character) {
     cpuLevel: character.cpuLevel,
     cpuLevelLabel: cpuProfile.label,
     drunk: 0,
+    hp: DEFAULT_ELIMINATION_HP,
+    eliminated: false,
+    eliminationRank: 0,
     hand: [],
     skipped: false,
     noDrinkGuard: false,
@@ -301,7 +321,14 @@ function currentPlayer() {
 
 function nextTurnPlayerIdx(offset = 1) {
   const len = state.turnOrder.length;
-  return state.turnOrder[((state.currentTurnIdx + state.direction * offset) % len + len) % len];
+  let idx = ((state.currentTurnIdx + state.direction * offset) % len + len) % len;
+  if (state.gameType === 'elimination') {
+    for (let i = 0; i < len; i++) {
+      if (!state.players[state.turnOrder[idx]]?.eliminated) break;
+      idx = ((idx + state.direction) % len + len) % len;
+    }
+  }
+  return state.turnOrder[idx];
 }
 
 // ── Deck helpers ──
@@ -317,7 +344,7 @@ function drawFromDeck() {
 function onDeckCycleEnd() {
   state.deckCycle++;
 
-  if (state.deckCycle >= state.maxCycles) {
+  if (state.gameType !== 'elimination' && state.deckCycle >= state.maxCycles) {
     state.gameOverPending = true;
     addLog(`デッキが${state.maxCycles}周しました。ゲーム終了！`, 'log-card');
     return false;
@@ -393,7 +420,30 @@ function applyTequilaHit(player, gain, label = 'テキーラ！') {
   player.drunk += gain;
   for (let i = 0; i < gain; i++) replenishHand(player);
   const extra = gain > 1 ? ` (+${gain})` : '';
-  addLog(`${player.name} → ${label}🍺 酔い${extra}`, 'log-tequila');
+  addLog(`${player.name} → ${label}🥃 酔い${extra}`, 'log-tequila');
+
+  if (state.gameType === 'elimination') {
+    player.hp = Math.max(0, player.hp - gain);
+    if (player.hp <= 0 && !player.eliminated) eliminatePlayer(player);
+  }
+}
+
+function eliminatePlayer(player) {
+  player.eliminated = true;
+  state.eliminationCount = (state.eliminationCount || 0) + 1;
+  player.eliminationRank = state.eliminationCount;
+  addLog(`💀 ${player.name} 脱落！`, 'log-tequila');
+  showCutin('脱落！', `${player.name} が倒れた`);
+}
+
+function checkEliminationGameOver() {
+  if (state.gameType !== 'elimination') return false;
+  const alive = state.players.filter(p => !p.eliminated);
+  if (alive.length <= 1) {
+    state.gameOverPending = true;
+    return true;
+  }
+  return false;
 }
 
 function consumeNoDrinkGuard(player, cardId) {
@@ -445,6 +495,7 @@ function resolveDrawCard(card, player, kanpaiNested = false) {
     state.doublePushActive = false;
     state.dodgeStack = 0;
     applyTequilaHit(player, gain);
+    if (checkEliminationGameOver()) { finishGame(); return; }
     setLastEvent('tequila', player.name, 'テキーラ！', `${player.name} の酔いカウンター +${gain}。卓上がざわつく。`);
     showCutin('テキーラ！', player.name + 'が飲んだ……');
     return;
@@ -465,6 +516,7 @@ function resolveDrawCard(card, player, kanpaiNested = false) {
     }
     state.doublePushActive = false;
     state.dodgeStack = 0;
+    if (checkEliminationGameOver()) { finishGame(); return; }
     setLastEvent('tequilaParty', player.name);
     showCutin('全員強制テキーラ乾杯！', '逃げ場なし');
     return;
@@ -476,6 +528,13 @@ function resolveDrawCard(card, player, kanpaiNested = false) {
     addLog('🥂 全員集合！乾杯！ — 全員引く！', 'log-all');
     setLastEvent('kanpai', player.name);
     showCutin('全員集合！乾杯！', 'みんな引け！');
+    if (state.gameMode === 'pvp') {
+      // PvP: 全員が順番にクリックで引く（脱落済みは除外）
+      state.kanpaiPending = state.turnOrder.filter(pi => !state.players[pi]?.eliminated);
+      state.phase = 'KANPAI_DRAW';
+      renderAll();
+      return;
+    }
     for (const p of state.players) {
       const c = drawFromDeck();
       if (!c) continue;
@@ -592,7 +651,14 @@ function applyAction(cardId, targetPlayerIdx = null) {
 // ── Turn management ──
 function advanceTurnIdx() {
   const len = state.turnOrder.length;
-  return ((state.currentTurnIdx + state.direction) % len + len) % len;
+  let next = ((state.currentTurnIdx + state.direction) % len + len) % len;
+  if (state.gameType === 'elimination') {
+    for (let i = 0; i < len; i++) {
+      if (!state.players[state.turnOrder[next]]?.eliminated) break;
+      next = ((next + state.direction) % len + len) % len;
+    }
+  }
+  return next;
 }
 
 function endTurn() {
@@ -629,6 +695,7 @@ function resolveSkips(depth) {
   }
 
   state.hasDrawnThisTurn = false;
+  state.handRevealed = state.gameMode !== 'pvp';
 
   if (state.gameMode === 'pvp') {
     // 強制ドロー対象の場合は PASS 解決後に FORCED_DRAW へ遷移させるためフラグだけ立てる
@@ -965,7 +1032,18 @@ function cpuUseTarget(cpu) {
 // ── Game finish ──
 function finishGame() {
   state.phase = 'RESULT';
-  const sorted = [...state.players].sort((a, b) => a.drunk - b.drunk);
+  let sorted;
+  if (state.gameType === 'elimination') {
+    // 生存者 > 脱落者（脱落が遅いほど上位）
+    sorted = [...state.players].sort((a, b) => {
+      if (!a.eliminated && b.eliminated) return -1;
+      if (a.eliminated && !b.eliminated) return 1;
+      if (a.eliminated && b.eliminated) return b.eliminationRank - a.eliminationRank;
+      return a.drunk - b.drunk;
+    });
+  } else {
+    sorted = [...state.players].sort((a, b) => a.drunk - b.drunk);
+  }
   showResultScreen(sorted);
 }
 
@@ -1040,10 +1118,10 @@ function showPeek(card) {
     cardEl.textContent = '（山札が空）';
     cardEl.className = 'peek-card';
   } else if (card.id === 'tequila') {
-    cardEl.textContent = '🍺 テキーラ！！';
+    cardEl.textContent = '🥃 テキーラ！！';
     cardEl.className = 'peek-card tequila-card';
   } else if (card.id === 'tequila_party') {
-    cardEl.textContent = '🍻 全員強制テキーラ乾杯！！';
+    cardEl.textContent = '🥃 全員強制テキーラ乾杯！！';
     cardEl.className = 'peek-card tequila-card';
   } else if (card.id === 'kanpai') {
     cardEl.textContent = '🥂 全員集合！乾杯！';
@@ -1070,7 +1148,7 @@ function showTargetSelect(cardId, label) {
     nameSpan.textContent = p.name;
     const drunkSpan = document.createElement('span');
     drunkSpan.className = 'target-btn-drunk';
-    drunkSpan.textContent = `🍺 ${p.drunk}`;
+    drunkSpan.textContent = `🥃 ${p.drunk}`;
     btn.append(nameSpan, drunkSpan);
     btn.addEventListener('click', () => {
       el.classList.add('hidden');
@@ -1114,9 +1192,15 @@ function renderAll() {
 
 function renderHud() {
   const cycleNum = Math.min(state.deckCycle + 1, state.maxCycles);
-  $('round-display').textContent = `${cycleNum}周目 / ${state.maxCycles}周`;
+  $('round-display').textContent = `${cycleNum} / ${state.maxCycles}`;
   $('deck-num').textContent = state.deck.length;
-  $('tequila-num').textContent = state.deck.filter(c => c.id === 'tequila' || c.id === 'tequila_party').length;
+  const dangerCards = state.deck.filter(c => c.id === 'tequila' || c.id === 'tequila_party').length;
+  $('tequila-num').textContent = dangerCards;
+  const danger = state.deck.length > 0 ? Math.round((dangerCards / state.deck.length) * 100) : 0;
+  const dangerNum = $('danger-num');
+  const dangerFill = $('danger-fill');
+  if (dangerNum) dangerNum.textContent = `${danger}%`;
+  if (dangerFill) dangerFill.style.width = `${Math.min(100, danger)}%`;
 }
 
 function renderEffectFlags() {
@@ -1152,16 +1236,18 @@ function renderPlayers() {
   const row = $('players-row');
   row.innerHTML = '';
   const cpIdx = state.turnOrder[state.currentTurnIdx];
-  const visiblePlayers = state.gameMode === 'pvp'
-    ? state.players.filter((_, i) => i !== cpIdx)
-    : state.players.filter(p => !p.isHuman);
+  const visiblePlayers = state.players;
   row.style.setProperty('--player-count', String(Math.max(visiblePlayers.length, 1)));
 
   for (const p of visiblePlayers) {
     const i = state.players.indexOf(p);
+    const isElimination = state.gameType === 'elimination';
     const chip = document.createElement('div');
     chip.className = 'player-chip'
-      + (i === cpIdx ? ' is-turn' : '');
+      + (i === cpIdx ? ' is-turn' : '')
+      + (p.isHuman ? ' is-human' : '')
+      + (isElimination ? ' is-elimination' : '')
+      + (p.eliminated ? ' is-eliminated' : '');
     chip.dataset.seat = String(i);
 
     const avatar = document.createElement('div');
@@ -1177,13 +1263,40 @@ function renderPlayers() {
     }
 
     const name  = document.createElement('div'); name.className = 'chip-name';        name.textContent = p.name;
-    const drunk = document.createElement('div'); drunk.className = 'chip-drunk';       drunk.textContent = p.drunk;
+    const drunk = document.createElement('div');
+    drunk.className = 'chip-drunk';
+    drunk.textContent = isElimination ? `${p.drunk}/${state.initialHp || DEFAULT_ELIMINATION_HP}` : p.drunk;
     const lbl   = document.createElement('div'); lbl.className   = 'chip-drunk-label'; lbl.textContent = '酔い';
-
     chip.append(avatar, name, drunk, lbl);
+
+    if (isElimination) {
+      const cups = document.createElement('div');
+      cups.className = 'chip-cups';
+      const cupMax = state.initialHp || DEFAULT_ELIMINATION_HP;
+      const cupCount = Math.min(cupMax, p.drunk);
+      for (let n = 0; n < cupMax; n++) {
+        const cup = document.createElement('span');
+        cup.className = n < cupCount ? 'is-filled' : '';
+        cup.textContent = '🥃';
+        cups.appendChild(cup);
+      }
+      chip.appendChild(cups);
+    }
+
+    if (state.gameType === 'elimination') {
+      const hpEl = document.createElement('div'); hpEl.className = 'chip-hp';
+      hpEl.textContent = p.eliminated ? '💀' : `❤️${p.hp}`;
+      chip.appendChild(hpEl);
+    }
 
     if (p.skipped) {
       const b = document.createElement('div'); b.className = 'chip-badge'; b.textContent = 'SKIP'; chip.appendChild(b);
+    }
+    if (i === cpIdx) {
+      const b = document.createElement('div'); b.className = 'chip-turn-badge'; b.textContent = 'NEXT'; chip.appendChild(b);
+    }
+    if (p.isHuman && (state.gameMode !== 'pvp' || i === cpIdx)) {
+      const b = document.createElement('div'); b.className = 'chip-you-badge'; b.textContent = 'YOU'; chip.appendChild(b);
     }
     row.appendChild(chip);
   }
@@ -1205,7 +1318,8 @@ function renderHumanStatus(currentPlayerIdx) {
 
   host.innerHTML = '';
   host.classList.toggle('is-turn', humanIdx === currentPlayerIdx);
-  host.style.setProperty('--drunk-ratio', `${Math.min(100, human.drunk * 12.5)}%`);
+  const drunkMax = state.gameType === 'elimination' ? (state.initialHp || DEFAULT_ELIMINATION_HP) : 5;
+  host.style.setProperty('--drunk-ratio', `${Math.min(100, (human.drunk / drunkMax) * 100)}%`);
 
   const avatar = document.createElement('div');
   avatar.className = 'human-avatar';
@@ -1227,26 +1341,47 @@ function renderHumanStatus(currentPlayerIdx) {
   name.textContent = human.name;
   const value = document.createElement('span');
   value.className = 'human-drunk-value';
-  value.textContent = `🍺 ${human.drunk} 酔い`;
+  value.textContent = state.gameType === 'elimination'
+    ? `🥃 ${human.drunk}/${state.initialHp || DEFAULT_ELIMINATION_HP}`
+    : `🥃 ${human.drunk}`;
   const handCount = document.createElement('span');
   handCount.className = 'human-hand-count';
   handCount.textContent = `手札 ${human.hand.length}`;
   head.append(name, value, handCount);
+  if (state.gameType === 'elimination') {
+    const hpSpan = document.createElement('span');
+    hpSpan.className = 'human-hp-value';
+    hpSpan.textContent = human.eliminated ? '💀 脱落' : `❤️ HP${human.hp}`;
+    head.appendChild(hpSpan);
+  }
 
   const meter = document.createElement('div');
   meter.className = 'human-drunk-meter';
   const fill = document.createElement('span');
   fill.className = 'human-drunk-fill';
   meter.appendChild(fill);
-  main.append(head, meter);
+  const mood = document.createElement('div');
+  mood.className = 'human-drunk-mood';
+  mood.textContent = drunkMoodText(human.drunk);
+  const scale = document.createElement('div');
+  scale.className = 'human-drunk-scale';
+  scale.innerHTML = '<span>シラフ</span><span>限界寸前</span>';
+  main.append(head, mood, meter, scale);
 
   const tag = document.createElement('div');
   tag.className = 'human-status-tag';
-  // PvP では常に手番者を表示するので 'YOUR TURN' 固定。vs-cpu は従来通り
   tag.textContent = human.noDrinkGuard ? 'GUARD'
     : (state.gameMode === 'pvp' ? 'YOUR TURN' : (humanIdx === currentPlayerIdx ? 'YOUR TURN' : 'YOU'));
 
   host.append(avatar, main, tag);
+}
+
+function drunkMoodText(value) {
+  if (value <= 0) return 'まだシラフ。ここから逃げ切ろう。';
+  if (value <= 1) return 'ちょっと酔い気味。まだ余裕あり。';
+  if (value <= 2) return 'かなり酔い気味……。押し付けたい。';
+  if (value <= 4) return '危険水域。防御札がほしい。';
+  return '限界寸前。次の一杯が重い。';
 }
 
 function renderStage() {
@@ -1258,8 +1393,28 @@ function renderStage() {
 
   // パスオーバーレイの表示制御（PvP 専用）
   const passOverlay = $('pass-overlay');
+  const isKanpaiDraw = state.phase === 'KANPAI_DRAW';
   if (passOverlay) {
-    if (isPass && state.gameMode === 'pvp') {
+    if (isKanpaiDraw) {
+      // 乾杯ドロー: 次に引くプレイヤーを表示
+      const nextIdx = state.kanpaiPending[0];
+      const nextP = state.players[nextIdx];
+      if (nextP) {
+        $('pass-kicker').textContent = '全員乾杯！';
+        $('pass-name').textContent = nextP.name;
+        const avatarEl = $('pass-avatar');
+        if (avatarEl) {
+          avatarEl.src = nextP.avatar || '';
+          avatarEl.style.display = nextP.avatar ? '' : 'none';
+        }
+        const noteEl = $('pass-note');
+        if (noteEl) noteEl.textContent = '山札から1枚引いてください。';
+        const revealBtn = $('pass-reveal-btn');
+        if (revealBtn) revealBtn.textContent = '🥃 引く！';
+      }
+      passOverlay.classList.remove('hidden');
+    } else if (isPass && state.gameMode === 'pvp') {
+      $('pass-kicker').textContent = 'PASS';
       $('pass-name').textContent = cp.name;
       const avatarEl = $('pass-avatar');
       if (avatarEl) {
@@ -1277,16 +1432,20 @@ function renderStage() {
       } else if (noteEl) {
         noteEl.textContent = '他の人に見られてないか確認したら、めくろう。';
       }
+      const revealBtn = $('pass-reveal-btn');
+      if (revealBtn) revealBtn.textContent = '準備OK、めくる';
       passOverlay.classList.remove('hidden');
     } else {
       passOverlay.classList.add('hidden');
     }
   }
 
-  if (isForcedDraw) {
+  if (isKanpaiDraw) {
+    banner.textContent = '🥂 全員乾杯！';
+  } else if (isForcedDraw) {
     const fp = state.forcedDrawPending;
     if (fp?.reason === 'target') {
-      banner.textContent = `${fp.sourcePlayerName} から「お前が飲め！」🍺`;
+      banner.textContent = `${fp.sourcePlayerName} から「お前が飲め！」🥃`;
     } else {
       banner.textContent = '「とりあえず一杯」— 引かされます！';
     }
@@ -1355,12 +1514,18 @@ function renderHand() {
   const isPlayerTurn  = state.phase === 'PLAYER_TURN';
   const isForcedDraw  = state.phase === 'FORCED_DRAW';
   area.classList.toggle('hidden', !isPlayerTurn && !isForcedDraw);
-  if (!isPlayerTurn && !isForcedDraw) return;
+  if (!isPlayerTurn && !isForcedDraw) {
+    area.classList.remove('is-private');
+    area.onclick = null;
+    return;
+  }
 
   const player = currentPlayer();
   const subtitle = $('hand-subtitle');
 
   if (isForcedDraw) {
+    area.classList.remove('is-private');
+    area.onclick = null;
     subtitle.textContent = '山札を引くボタンを押してください';
     $('hand-cards').innerHTML =
       '<div class="forced-note">手札は使えません。山札を引かされます。</div>';
@@ -1375,12 +1540,29 @@ function renderHand() {
 
   const grid = $('hand-cards');
   grid.innerHTML = '';
+  area.classList.toggle('is-private', state.gameMode === 'pvp' && !state.handRevealed);
+  area.onclick = null;
 
   if (player.hand.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'empty-hand';
     empty.textContent = '手札がありません';
     grid.appendChild(empty);
+    return;
+  }
+
+  if (state.gameMode === 'pvp' && !state.handRevealed) {
+    subtitle.textContent = '手札は伏せています。ここをタップで見る';
+    area.onclick = () => {
+      state.handRevealed = true;
+      renderHand();
+    };
+    for (let i = 0; i < player.hand.length; i++) {
+      const back = document.createElement('div');
+      back.className = 'action-card hand-card-back';
+      back.setAttribute('aria-label', '伏せられた手札');
+      grid.appendChild(back);
+    }
     return;
   }
 
@@ -1438,7 +1620,7 @@ function onPlayerCardClick(cardId) {
   if (state.phase !== 'PLAYER_TURN') return;
 
   if (cardId === 'target') {
-    showTargetSelect('target', '誰に飲ませる？ 🍺');
+    showTargetSelect('target', '誰に飲ませる？ 🥃');
     return;
   }
 
@@ -1502,38 +1684,54 @@ function showResultScreen(sorted) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $('result-screen').classList.add('active');
 
-  // 同率考慮
-  const minDrunk = sorted[0].drunk;
-  const winners  = sorted.filter(p => p.drunk === minDrunk);
   const titleEl  = $('result-title');
   const summaryEl = $('result-party-summary');
-  if (winners.length === 1) {
-    titleEl.textContent = `${winners[0].name} の勝ち！`;
-  } else {
-    titleEl.textContent = `${winners.map(p => p.name).join(' & ')} の引き分け！`;
-  }
   const isPvp = state.gameMode === 'pvp';
+  const isElimination = state.gameType === 'elimination';
   const human = isPvp ? null : state.players.find(p => p.isHuman);
   const humanRank = human ? sorted.findIndex(p => p.id === human.id) + 1 : 0;
-  const worst = sorted[sorted.length - 1];
+
   const badge = $('result-badge');
-  if (badge) {
-    const src = !isPvp && humanRank === sorted.length
-      ? GENERATED_ASSETS.resultBadge.victim
-      : (winners.some(p => !isPvp && p.isHuman)
-        ? GENERATED_ASSETS.resultBadge.survivor
-        : (winners.length === 1 ? GENERATED_ASSETS.resultBadge.winner : GENERATED_ASSETS.resultBadge.drunkKing));
-    badge.src = src;
-  }
-  if (summaryEl) {
-    if (isPvp) {
-      summaryEl.textContent = `${worst.name} が一番飲んだ夜。お疲れさま。`;
-    } else if (winners.some(p => p.isHuman)) {
-      summaryEl.textContent = '一番しらふで夜を抜けた。卓上の空気まで読めていた。';
-    } else if (humanRank === sorted.length) {
-      summaryEl.textContent = `${worst.name} が一番飲んだ夜。次は山札の気配をもっと疑おう。`;
+
+  if (isElimination) {
+    const allEliminated = sorted.every(p => p.eliminated);
+    const winner = sorted[0];
+    if (allEliminated) {
+      titleEl.textContent = '全員脱落…！';
+      if (summaryEl) summaryEl.textContent = 'テキーラが全員を飲み込んだ夜。';
     } else {
-      summaryEl.textContent = `あなたは ${humanRank} 位。勝ち筋は見えたけど、最後の一杯が重かった。`;
+      titleEl.textContent = `${winner.name} が生き残った！`;
+      if (summaryEl) summaryEl.textContent = `${winner.name} はHP${state.initialHp || DEFAULT_ELIMINATION_HP}の壁を守り切った。`;
+    }
+    if (badge) badge.src = allEliminated ? GENERATED_ASSETS.resultBadge.drunkKing : GENERATED_ASSETS.resultBadge.winner;
+  } else {
+    // 同率考慮
+    const minDrunk = sorted[0].drunk;
+    const winners  = sorted.filter(p => p.drunk === minDrunk);
+    if (winners.length === 1) {
+      titleEl.textContent = `${winners[0].name} の勝ち！`;
+    } else {
+      titleEl.textContent = `${winners.map(p => p.name).join(' & ')} の引き分け！`;
+    }
+    const worst = sorted[sorted.length - 1];
+    if (badge) {
+      const src = !isPvp && humanRank === sorted.length
+        ? GENERATED_ASSETS.resultBadge.victim
+        : (winners.some(p => !isPvp && p.isHuman)
+          ? GENERATED_ASSETS.resultBadge.survivor
+          : (winners.length === 1 ? GENERATED_ASSETS.resultBadge.winner : GENERATED_ASSETS.resultBadge.drunkKing));
+      badge.src = src;
+    }
+    if (summaryEl) {
+      if (isPvp) {
+        summaryEl.textContent = `${worst.name} が一番飲んだ夜。お疲れさま。`;
+      } else if (winners.some(p => p.isHuman)) {
+        summaryEl.textContent = '一番しらふで夜を抜けた。卓上の空気まで読めていた。';
+      } else if (humanRank === sorted.length) {
+        summaryEl.textContent = `${worst.name} が一番飲んだ夜。次は山札の気配をもっと疑おう。`;
+      } else {
+        summaryEl.textContent = `あなたは ${humanRank} 位。勝ち筋は見えたけど、最後の一杯が重かった。`;
+      }
     }
   }
 
@@ -1544,7 +1742,7 @@ function showResultScreen(sorted) {
   for (let i = 0; i < sorted.length; i++) {
     const p = sorted[i];
     const row = document.createElement('div');
-    row.className = 'rank-row' + (p.drunk === minDrunk ? ' winner' : '');
+    row.className = 'rank-row' + (i === 0 && !p.eliminated ? ' winner' : '');
 
     const num = document.createElement('div');
     num.className = 'rank-num ' + (medals[i] || '');
@@ -1557,9 +1755,18 @@ function showResultScreen(sorted) {
     const right = document.createElement('div');
     right.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;gap:2px;';
 
-    const drunk = document.createElement('div'); drunk.className = 'rank-drunk';       drunk.textContent = p.drunk;
-    const lbl   = document.createElement('div'); lbl.className   = 'rank-drunk-label'; lbl.textContent   = '酔い';
-    right.append(drunk, lbl);
+    if (isElimination) {
+      const status = document.createElement('div'); status.className = 'rank-drunk';
+      status.textContent = p.eliminated ? '脱落' : '生存';
+      status.style.color = p.eliminated ? '#FF2D6F' : '#00c896';
+      const lbl = document.createElement('div'); lbl.className = 'rank-drunk-label';
+      lbl.textContent = p.eliminated ? `🥃 ${p.drunk}杯` : '❤️ 残存';
+      right.append(status, lbl);
+    } else {
+      const drunk = document.createElement('div'); drunk.className = 'rank-drunk';       drunk.textContent = p.drunk;
+      const lbl   = document.createElement('div'); lbl.className   = 'rank-drunk-label'; lbl.textContent   = '酔い';
+      right.append(drunk, lbl);
+    }
 
     row.append(num, name, right);
     rankings.appendChild(row);
@@ -1569,11 +1776,23 @@ function showResultScreen(sorted) {
 }
 
 function buildPartyResultPostText(sorted, human, humanRank) {
+  if (state.gameMode === 'pvp' && state.gameType === 'elimination') {
+    const winner = sorted[0];
+    const allEliminated = sorted.every(p => p.eliminated);
+    const resultLine = allEliminated ? '全員脱落！' : `生存者: ${winner.name}`;
+    const scoreLine = sorted.map(p => `${p.name}${p.eliminated ? '💀' : '❤️'}${p.drunk}`).join(' / ');
+    return [
+      'テキーラから逃げろ！PARTY MODE（脱落モード）',
+      `${state.players.length}人 HP${state.initialHp || DEFAULT_ELIMINATION_HP}制`,
+      resultLine,
+      scoreLine,
+    ].join('\n');
+  }
   const minDrunk = sorted[0].drunk;
   const winners  = sorted.filter(p => p.drunk === minDrunk);
   const winLabel = winners.length === 1 ? winners[0].name : winners.map(p => p.name).join(' & ');
   if (state.gameMode === 'pvp') {
-    const scoreLine = sorted.map(p => `${p.name}🍺${p.drunk}`).join(' / ');
+    const scoreLine = sorted.map(p => `${p.name}🥃${p.drunk}`).join(' / ');
     return [
       'テキーラから逃げろ！PARTY MODE（ローカル対人）',
       `${state.maxCycles}周 × ${state.players.length}人`,
@@ -1646,8 +1865,13 @@ function renderCharacterSetup(fillMissing = false) {
   humanList.innerHTML = '';
   cpuList.innerHTML = '';
 
-  for (const character of CHARACTERS) {
+  const humanCharacters = VS_CPU_HUMAN_CHARACTER_IDS.map(getCharacter);
+  const cpuCharacters = CPU_CHARACTER_IDS.map(getCharacter);
+
+  for (const character of humanCharacters) {
     humanList.appendChild(createCharacterButton(character, 'human'));
+  }
+  for (const character of cpuCharacters) {
     cpuList.appendChild(createCharacterButton(character, 'cpu'));
   }
 }
@@ -1725,7 +1949,7 @@ function startGame() {
       const character = getCharacter(s.characterId || pvpFallbackCharacter(i));
       return { name: (s.name?.trim() || character.name).slice(0, 8), character };
     });
-    state = initStatePvp(seats, maxCycles);
+    state = initStatePvp(seats, maxCycles, pvpGameType, pvpInitialHp);
     state.phase = 'PASS';
   } else {
     const name = $('player-name').value.trim() || 'あなた';
@@ -1742,12 +1966,40 @@ function startGame() {
 }
 
 function pvpFallbackCharacter(seatIndex) {
-  const usedIds = pvpSeats.slice(0, seatIndex).map(s => s.characterId).filter(Boolean);
-  const available = CHARACTERS.filter(c => !usedIds.includes(c.id));
-  return (available[0] || CHARACTERS[seatIndex % CHARACTERS.length]).id;
+  return CHARACTERS[seatIndex % CHARACTERS.length].id;
 }
 
 function onPassRevealClick() {
+  if (state.phase === 'KANPAI_DRAW') {
+    const idx = state.kanpaiPending.shift();
+    if (idx === undefined) {
+      // キューが空（念のため）
+      state.phase = 'PLAYER_TURN';
+      renderAll();
+      return;
+    }
+    const p = state.players[idx];
+    const c = drawFromDeck();
+    if (c) resolveDrawCard(c, p, /* kanpaiNested= */ true);
+
+    // 脱落でゲーム終了した場合はそのまま終わる
+    if (state.gameOverPending && state.phase === 'RESULT') return;
+
+    // 残りキューから脱落者を除いてチェック
+    state.kanpaiPending = state.kanpaiPending.filter(pi => !state.players[pi]?.eliminated);
+
+    if (state.kanpaiPending.length > 0) {
+      // まだ引いていないプレイヤーがいる
+      renderAll();
+    } else {
+      // 全員引き終わり → 手番プレイヤーのターンに戻す
+      state.phase = 'PLAYER_TURN';
+      state.handRevealed = state.gameMode !== 'pvp';
+      renderAll();
+    }
+    return;
+  }
+
   if (state.phase !== 'PASS') return;
   if (state.forcedDrawPending) {
     const cp = currentPlayer();
@@ -1757,6 +2009,7 @@ function onPassRevealClick() {
     state.phase = 'FORCED_DRAW';
   } else {
     state.phase = 'PLAYER_TURN';
+    state.handRevealed = state.gameMode !== 'pvp';
   }
   renderAll();
 }
@@ -1769,9 +2022,7 @@ function renderPvpPlayerSetup() {
   // pvpSeats を pvpCount に合わせてリサイズ（既存の値は保持、不足分はデフォルトキャラを割り当て）
   while (pvpSeats.length < pvpCount) {
     const idx = pvpSeats.length;
-    const usedIds = pvpSeats.map(s => s.characterId).filter(Boolean);
-    const available = CHARACTERS.filter(c => !usedIds.includes(c.id));
-    pvpSeats.push({ name: '', characterId: (available[0] || CHARACTERS[idx % CHARACTERS.length]).id });
+    pvpSeats.push({ name: '', characterId: CHARACTERS[idx % CHARACTERS.length].id });
   }
   pvpSeats = pvpSeats.slice(0, pvpCount);
 
@@ -1806,11 +2057,6 @@ function renderPvpPlayerSetup() {
     grid.setAttribute('role', 'radiogroup');
     grid.setAttribute('aria-label', `${labels[i]} のキャラクター`);
 
-    const usedByOthers = pvpSeats
-      .filter((_, j) => j !== i)
-      .map(s => s.characterId)
-      .filter(Boolean);
-
     for (const char of CHARACTERS) {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -1818,10 +2064,6 @@ function renderPvpPlayerSetup() {
       btn.setAttribute('role', 'radio');
       btn.setAttribute('aria-pressed', seat.characterId === char.id ? 'true' : 'false');
       btn.style.setProperty('--char-accent', char.gender === 'male' ? '#8E55FF' : '#FF2D6F');
-      if (usedByOthers.includes(char.id)) {
-        btn.disabled = true;
-        btn.setAttribute('aria-disabled', 'true');
-      }
 
       const portrait = document.createElement('span');
       portrait.className = 'character-portrait';
@@ -1858,7 +2100,21 @@ function switchSetupMode(mode) {
     btn.classList.toggle('active', active);
     btn.setAttribute('aria-pressed', active ? 'true' : 'false');
   });
-  if (mode === 'pvp') renderPvpPlayerSetup();
+  if (mode === 'pvp') {
+    updatePvpRuleUi();
+    renderPvpPlayerSetup();
+  }
+}
+
+function updatePvpRuleUi() {
+  const hpOptions = $('pvp-hp-options');
+  if (hpOptions) hpOptions.hidden = pvpGameType !== 'elimination';
+
+  const hint = $('pvp-gametype-hint');
+  if (!hint) return;
+  hint.textContent = pvpGameType === 'elimination'
+    ? `HP${pvpInitialHp}からスタート。テキーラをHPぶん飲んだら脱落。最後まで生き残ったプレイヤーの勝ち！`
+    : '2周プレイ。一番酔いが少なかったプレイヤーの勝ち。';
 }
 
 function clearTransientUI() {
@@ -1890,7 +2146,7 @@ function playAgain() {
       name: p.name,
       character: getCharacter(p.characterId),
     }));
-    state = initStatePvp(seats, maxCycles);
+    state = initStatePvp(seats, maxCycles, state.gameType || pvpGameType, state.initialHp || pvpInitialHp);
     state.phase = 'PASS';
   } else {
     const human = state.players.find(p => p.isHuman);
@@ -1943,6 +2199,32 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.setAttribute('aria-pressed', 'true');
       pvpCount = parseInt(btn.dataset.count || '2');
       renderPvpPlayerSetup();
+    });
+  });
+
+  document.querySelectorAll('.pvp-gametype-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.pvp-gametype-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      pvpGameType = btn.dataset.gametype || 'standard';
+      updatePvpRuleUi();
+    });
+  });
+
+  document.querySelectorAll('.pvp-hp-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.pvp-hp-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      pvpInitialHp = parseInt(btn.dataset.hp || String(DEFAULT_ELIMINATION_HP), 10);
+      updatePvpRuleUi();
     });
   });
 
