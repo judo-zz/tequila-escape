@@ -341,10 +341,11 @@ button:disabled {
 .party-top-character {
   position: absolute;
   left: 50%;
-  bottom: -6px;
+  top: clamp(112px, 18dvh, 136px);
+  bottom: auto;
   z-index: 1;
-  width: min(500px, 112%);
-  max-height: 91%;
+  width: min(360px, 92%);
+  max-height: calc(100% - clamp(112px, 18dvh, 136px));
   object-fit: contain;
   object-position: center bottom;
   transform: translateX(-50%);
