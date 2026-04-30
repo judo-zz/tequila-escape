@@ -135,8 +135,9 @@
         <li><strong>フェイク</strong><span>1Pで飲まずに守る</span></li>
         <li><strong>見張る</strong><span>2Pで相手のフェイクを刺す</span></li>
         <li><strong>チェイサー</strong><span>2PでHPを2回復</span></li>
+        <li><strong>場の空気</strong><span>毎ターン効果が変わる</span></li>
       </ul>
-      <p class="rule-help-note">みるくの予告を読んで、10ターン逃げ切る。</p>
+      <p class="rule-help-note">疑惑を溜めすぎず、テンションを切るタイミングを読む。</p>
       <button id="rule-help-start" class="rule-help-start" type="button">わかった、始める</button>
     </div>
   </div>
@@ -171,6 +172,11 @@
               <div class="hint-trust"></div>
             </div>
           </div>
+          <div id="field-event" class="field-event" hidden>
+            <span id="field-event-kicker" class="field-event-kicker">場の空気</span>
+            <strong id="field-event-title" class="field-event-title"></strong>
+            <span id="field-event-copy" class="field-event-copy"></span>
+          </div>
         </div>
 
         <div class="milk-ambient" aria-hidden="true"></div>
@@ -187,6 +193,13 @@
               aria-hidden="true"
               onload="this.classList.add('loaded')"
               onerror="this.dataset.failed='1'">
+            <img
+              id="char-art-next"
+              class="char-art char-art-next"
+              alt=""
+              decoding="async"
+              aria-hidden="true"
+              hidden>
             <div class="char-fallback" aria-hidden="true">
               <span class="face-eye left"></span>
               <span class="face-eye right"></span>
@@ -238,6 +251,12 @@
     </main>
 
     <section id="hand" class="hand blocked">
+      <div class="mind-strip" aria-label="読み合い状態">
+        <span id="suspicion-chip" class="mind-chip mind-suspicion">疑惑 0</span>
+        <span id="tension-chip" class="mind-chip mind-tension">テンション 0</span>
+        <span id="milk-mode-chip" class="mind-chip mind-mode">みるく 通常</span>
+      </div>
+
       <div class="resource-board" aria-label="ライフとポイント">
         <div class="resource-side resource-player">
           <span class="resource-owner">YOU</span>
@@ -285,6 +304,7 @@
           <span class="hand-title">あなたの手札</span>
           <span id="hand-subtitle" class="hand-subtitle">1枚えらんで同時に出す</span>
         </div>
+        <button id="limit-btn" class="limit-btn" type="button" hidden>限界コール</button>
       </div>
 
       <div class="hand-grid">
