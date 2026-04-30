@@ -22,12 +22,12 @@ const ACTION_DEFS = {
 const ACTION_COUNTS = { reverse:4, force:4, target:4, double:4, peek:4, skip:4, dodge:4, guard:4 };
 
 const CHARACTERS = [
-  { id: 'koji',  name: 'こーじ',  avatar: 'assets/koji.png',      gender: 'male',   cpuLevel: 'hard'   },
-  { id: 'ryota', name: 'りょーた', avatar: 'assets/ryota.png',     gender: 'male',   cpuLevel: 'normal' },
-  { id: 'osho',  name: 'おしょー', avatar: 'assets/osho.png',      gender: 'male',   cpuLevel: 'hard'   },
-  { id: 'nana',  name: 'なな',     avatar: 'assets/nana.png',      gender: 'female', cpuLevel: 'easy'   },
-  { id: 'yapi',  name: 'やぴ',     avatar: 'assets/yapi-card.png', gender: 'female', cpuLevel: 'normal' },
-  { id: 'milk',  name: 'みるく',   avatar: 'assets/milk-card.png', gender: 'female', cpuLevel: 'easy'   },
+  { id: 'koji',  name: 'こーじ',  avatar: 'assets/koji.png',      gender: 'male',   cpuLevel: 'hard',   skill: 'koji_cold'     },
+  { id: 'ryota', name: 'りょーた', avatar: 'assets/ryota.png',     gender: 'male',   cpuLevel: 'normal', skill: 'ryota_yolo'    },
+  { id: 'osho',  name: 'おしょー', avatar: 'assets/osho.png',      gender: 'male',   cpuLevel: 'hard',   skill: 'osho_tricky'   },
+  { id: 'nana',  name: 'なな',     avatar: 'assets/nana.png',      gender: 'female', cpuLevel: 'easy',   skill: 'nana_helpless' },
+  { id: 'yapi',  name: 'やぴ',     avatar: 'assets/yapi-card.png', gender: 'female', cpuLevel: 'normal', skill: 'yapi_whimsy'   },
+  { id: 'milk',  name: 'みるく',   avatar: 'assets/milk-card.png', gender: 'female', cpuLevel: 'easy',   skill: 'milk_reserve'  },
 ];
 
 const DEFAULT_HUMAN_CHARACTER_ID = 'yapi';
@@ -63,6 +63,57 @@ const CPU_LEVELS = {
     reverseHarassChance: 0.22,
     targetBestChance: 0.62,
     safeChainChance: 0.58,
+  },
+};
+
+const CPU_SKILLS = {
+  koji_cold:     { alwaysComboDoubleTarget: true, neverChainAfterSafe: true },
+  ryota_yolo:    { alwaysChainAfterSafe: true, neverUseDodge: true },
+  osho_tricky:   { dangerIgnoreChance: 0.05 },
+  nana_helpless: { neverUseGuard: true, neverUseTarget: true },
+  yapi_whimsy:   { wildcardChance: 0.35 },
+  milk_reserve:  { guardAtDrunk: 3 },
+};
+
+const CPU_FLAVOR = {
+  koji_cold: {
+    draw:    ['「……」'],
+    safe:    ['「読んでたぞ」', '「……」'],
+    tequila: ['「ちっ」', '「想定内だ」'],
+    guard:   ['「俺には関係ない」'],
+    target:  ['「お前だ」', '「読んでたぞ」'],
+    combo:   ['「詰めだ」'],
+  },
+  ryota_yolo: {
+    draw:    ['「えいっ！」'],
+    safe:    ['「もう1枚いくぜ！」', '「うぇーい🍺」'],
+    tequila: ['「うっ……でもいくぜ！」'],
+    chain:   ['「まだまだ！」'],
+    target:  ['「お前飲め〜！」'],
+  },
+  osho_tricky: {
+    draw:    ['「ふっ…」'],
+    safe:    ['「ふっ…」', '「まだまだ」'],
+    tequila: ['「想定の範囲内」'],
+    skip:    ['「詰めが甘いな」', '「ふっ…」'],
+    target:  ['「詰めだ」'],
+  },
+  nana_helpless: {
+    draw:    ['「いくよ〜」'],
+    safe:    ['「よかった〜！」'],
+    tequila: ['「えっ……飲むの？」', '「しょうがないか〜」'],
+  },
+  yapi_whimsy: {
+    draw:    ['「えいっ！」', '「なんとかな〜れ！」'],
+    safe:    ['「やった〜！」', '「えへへ〜♪」'],
+    tequila: ['「えっ〜！」', '「やぴは悪くない！」'],
+    action:  ['「なんとかな〜れ！」', '「えへへ〜♪」'],
+  },
+  milk_reserve: {
+    draw:    ['「……」'],
+    safe:    ['「……（安堵）」'],
+    tequila: ['「……（受け入れる）」'],
+    guard:   ['「気をつけて」', '「……」'],
   },
 };
 
@@ -653,24 +704,62 @@ function runCpuDecide() {
 function runCpuDecideAfterPeek(knownTop) {
   const cpu = currentPlayer();
   const profile = cpuProfile(cpu);
+  const skill = cpuSkill(cpu);
   cpu._peeked = false;
 
   const topId = knownTop?.id;
   const topIsDangerSelf = topId === 'tequila' || topId === 'tequila_party';
   const topIsKanpai     = topId === 'kanpai';
 
+  // milk_reserve: drunk が閾値以上ならガードを最優先
+  if (skill.guardAtDrunk !== undefined && cpu.drunk >= skill.guardAtDrunk) {
+    const hasGuardMilk = cpu.hand.some(c => c.id === 'guard');
+    if (hasGuardMilk && !cpu.noDrinkGuard) {
+      const idx = cpu.hand.findIndex(c => c.id === 'guard');
+      const card = cpu.hand.splice(idx, 1)[0];
+      discardCard(card);
+      cpu.noDrinkGuard = true;
+      const f = cpuFlavor(cpu, 'guard') || '';
+      addLog(`${cpu.name} → 飲みません宣言！${f ? `　${f}` : ''}`, 'log-card');
+      setLastEvent('action', cpu.name, card.label, `${cpu.name} は次のテキーラに保険をかけた。`);
+      showSfx('飲みません宣言！');
+      renderAll();
+      setTimeout(cpuDrawOnce, 700);
+      return;
+    }
+  }
+
+  // yapi_whimsy: wildcardChance の確率で判断を捨てて突っ込む
+  if (skill.wildcardChance && Math.random() < skill.wildcardChance) {
+    const f = cpuFlavor(cpu, 'action') || '';
+    if (f) addLog(`${cpu.name}　${f}`, 'log-card');
+    cpuDrawOnce();
+    return;
+  }
+
+  // osho_tricky: 危険が見えても dangerIgnoreChance で無視して引く
+  if (skill.dangerIgnoreChance && topIsDangerSelf && Math.random() < skill.dangerIgnoreChance) {
+    const f = cpuFlavor(cpu, 'draw') || '';
+    if (f) addLog(`${cpu.name}　${f}`, '');
+    cpuDrawOnce();
+    return;
+  }
+
   if (topIsDangerSelf && Math.random() < profile.dangerAvoidChance) {
     const hasDouble = cpu.hand.some(c => c.id === 'double');
-    const hasTarget = cpu.hand.some(c => c.id === 'target');
-    const hasDodge  = cpu.hand.some(c => c.id === 'dodge');
-    const hasGuard  = cpu.hand.some(c => c.id === 'guard');
+    const hasTarget = cpu.hand.some(c => c.id === 'target') && !skill.neverUseTarget;
+    const hasDodge  = cpu.hand.some(c => c.id === 'dodge')  && !skill.neverUseDodge;
+    const hasGuard  = cpu.hand.some(c => c.id === 'guard')  && !skill.neverUseGuard;
 
-    if (hasDouble && hasTarget) {
+    // koji_cold: double+target コンボを確定で撃つ
+    const comboGuaranteed = skill.alwaysComboDoubleTarget && hasDouble && cpu.hand.some(c => c.id === 'target');
+    if (comboGuaranteed || (hasDouble && hasTarget)) {
       const doubleIdx = cpu.hand.findIndex(c => c.id === 'double');
       const card = cpu.hand.splice(doubleIdx, 1)[0];
       discardCard(card);
       state.doublePushActive = true;
-      addLog(`${cpu.name} → 倍プッシュだ……！`, 'log-card');
+      const f = cpuFlavor(cpu, 'combo') || '';
+      addLog(`${cpu.name} → 倍プッシュだ……！${f ? `　${f}` : ''}`, 'log-card');
       setLastEvent('action', cpu.name, card.label, `${cpu.name} が次の一杯を重くした。`);
       showSfx('倍プッシュ！');
       renderAll();
@@ -685,7 +774,8 @@ function runCpuDecideAfterPeek(knownTop) {
       const card = cpu.hand.splice(idx, 1)[0];
       discardCard(card);
       cpu.noDrinkGuard = true;
-      addLog(`${cpu.name} → 飲みません宣言！`, 'log-card');
+      const f = cpuFlavor(cpu, 'guard') || '';
+      addLog(`${cpu.name} → 飲みません宣言！${f ? `　${f}` : ''}`, 'log-card');
       setLastEvent('action', cpu.name, card.label, `${cpu.name} は次のテキーラに保険をかけた。`);
       showSfx('飲みません宣言！');
       renderAll();
@@ -801,16 +891,33 @@ function runCpuDecideAfterPeek(knownTop) {
 function cpuDrawOnce() {
   const cpu = currentPlayer();
   const profile = cpuProfile(cpu);
+  const skill = cpuSkill(cpu);
   setTimeout(() => {
-    addLog(`${cpu.name} → 山札を引く`, '');
+    const df = cpuFlavor(cpu, 'draw') || '';
+    addLog(`${cpu.name} → 山札を引く${df ? `　${df}` : ''}`, '');
     const c = drawFromDeck();
     resolveDrawCard(c, cpu);
     state.hasDrawnThisTurn = true;
+
+    // ドロー結果のフレーバー
+    if (c?.id === 'safe') {
+      const f = cpuFlavor(cpu, 'safe');
+      if (f) setTimeout(() => { addLog(`${cpu.name}　${f}`, 'log-safe'); renderAll(); }, 250);
+    } else if (c?.id === 'tequila' || c?.id === 'tequila_party') {
+      const f = cpuFlavor(cpu, 'tequila');
+      if (f) setTimeout(() => { addLog(`${cpu.name}　${f}`, 'log-tequila'); renderAll(); }, 250);
+    }
+
     renderAll();
 
-    // チキンレース: やさしめCPUほど欲張ってもう1枚引きやすい
-    const drewSafe = c && c.id === 'safe';
-    if (drewSafe && Math.random() < profile.safeChainChance) {
+    const drewSafe = c?.id === 'safe';
+    if (drewSafe && skill.alwaysChainAfterSafe) {
+      // ryota_yolo: セーフなら必ず突っ込む
+      const cf = cpuFlavor(cpu, 'chain') || 'もう1枚いく……';
+      addLog(`${cpu.name} → ${cf}`, '');
+      setTimeout(cpuDrawOnce, 700);
+    } else if (drewSafe && !skill.neverChainAfterSafe && Math.random() < profile.safeChainChance) {
+      // 通常のチキンレース（koji_cold はここに来ない）
       addLog(`${cpu.name} → もう1枚いく……`, '');
       setTimeout(cpuDrawOnce, 700);
     } else {
@@ -831,7 +938,8 @@ function cpuUseTarget(cpu) {
   const handIdx = cpu.hand.findIndex(c => c.id === 'target');
   const card = cpu.hand.splice(handIdx, 1)[0];
   discardCard(card);
-  addLog(`${cpu.name} → お前が飲め！ → ${target.name}`, 'log-card');
+  const tf = cpuFlavor(cpu, 'target') || '';
+  addLog(`${cpu.name} → お前が飲め！ → ${target.name}${tf ? `　${tf}` : ''}`, 'log-card');
   setLastEvent('action', cpu.name, card.label, `${target.name} に山札を引かせる。場の視線が集まった。`);
   showSfx('お前が飲め！');
   renderAll();
@@ -864,6 +972,16 @@ function $(id) { return document.getElementById(id); }
 
 function cpuProfile(player) {
   return CPU_LEVELS[player?.cpuLevel] || CPU_LEVELS.easy;
+}
+
+function cpuSkill(player) {
+  return CPU_SKILLS[player?.character?.skill] || {};
+}
+
+function cpuFlavor(cpu, situation) {
+  const lines = CPU_FLAVOR[cpu?.character?.skill]?.[situation];
+  if (!lines?.length) return null;
+  return lines[Math.floor(Math.random() * lines.length)];
 }
 
 function shuffle(arr) {
