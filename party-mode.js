@@ -9,14 +9,14 @@ const DECK_CARDS = [
 ];
 
 const ACTION_DEFS = {
-  reverse: { id:'reverse', label:'帰宅方向逆です', icon:'↺', effect:'順番を逆回りに',      accent:'--accent-reverse' },
-  force:   { id:'force',   label:'とりあえず一杯', icon:'杯', effect:'強制ドロー+即終了',  accent:'--accent-force'   },
-  target:  { id:'target',  label:'お前が飲め',     icon:'指', effect:'誰かに引かせる',      accent:'--accent-target'  },
-  double:  { id:'double',  label:'倍プッシュだ……！',icon:'倍', effect:'次のテキーラが×2',   accent:'--accent-double'  },
-  peek:    { id:'peek',    label:'嫌な予感',        icon:'視', effect:'山札の上を見る',      accent:'--accent-peek'    },
-  skip:    { id:'skip',    label:'スキップ',        icon:'飛', effect:'次の人を飛ばす',      accent:'--accent-skip'    },
-  dodge:   { id:'dodge',   label:'回避',            icon:'避', effect:'即終了+次被弾者+1',  accent:'--accent-dodge'   },
-  guard:   { id:'guard',   label:'飲みません宣言',  icon:'拒', effect:'テキーラ回避+1枚',  accent:'--accent-guard'   },
+  reverse: { id:'reverse', label:'帰宅方向逆です', icon:'↺', effect:'順番を逆回りに',      accent:'--accent-reverse', art:'assets/generated/hand-card-reverse.webp' },
+  force:   { id:'force',   label:'とりあえず一杯', icon:'杯', effect:'強制ドロー+即終了',  accent:'--accent-force',   art:'assets/generated/hand-card-force.webp'   },
+  target:  { id:'target',  label:'お前が飲め',     icon:'指', effect:'誰かに引かせる',      accent:'--accent-target',  art:'assets/generated/hand-card-target.webp'  },
+  double:  { id:'double',  label:'倍プッシュだ……！',icon:'倍', effect:'次のテキーラが×2',   accent:'--accent-double',  art:'assets/generated/hand-card-double.webp'  },
+  peek:    { id:'peek',    label:'嫌な予感',        icon:'視', effect:'山札の上を見る',      accent:'--accent-peek',    art:'assets/generated/hand-card-peek.webp'    },
+  skip:    { id:'skip',    label:'スキップ',        icon:'飛', effect:'次の人を飛ばす',      accent:'--accent-skip',    art:'assets/generated/hand-card-skip.webp'    },
+  dodge:   { id:'dodge',   label:'回避',            icon:'避', effect:'即終了+次被弾者+1',  accent:'--accent-dodge',   art:'assets/generated/hand-card-dodge.webp'   },
+  guard:   { id:'guard',   label:'飲みません宣言',  icon:'拒', effect:'テキーラ回避+1枚',  accent:'--accent-guard',   art:'assets/generated/hand-card-guard.webp'   },
 };
 
 const ACTION_COUNTS = { reverse:4, force:4, target:4, double:4, peek:4, skip:4, dodge:4, guard:4 };
@@ -75,24 +75,24 @@ const EVENT_COPY = {
 
 const GENERATED_ASSETS = {
   eventArt: {
-    safe: 'assets/generated/draw-safe.png',
-    tequila: 'assets/generated/draw-tequila.png',
-    kanpai: 'assets/generated/draw-kanpai.png',
-    tequilaParty: 'assets/generated/draw-tequila-party.png',
+    safe: 'assets/generated/draw-safe.webp',
+    tequila: 'assets/generated/draw-tequila.webp',
+    kanpai: 'assets/generated/draw-kanpai.webp',
+    tequilaParty: 'assets/generated/draw-tequila-party.webp',
   },
   cutinArt: {
-    safe: 'assets/generated/effect-safe.png',
-    tequila: 'assets/generated/effect-tequila.png',
-    kanpai: 'assets/generated/effect-win.png',
-    tequilaParty: 'assets/generated/effect-tequila.png',
-    guard: 'assets/generated/effect-guard.png',
-    win: 'assets/generated/effect-win.png',
+    safe: 'assets/generated/effect-safe.webp',
+    tequila: 'assets/generated/effect-tequila.webp',
+    kanpai: 'assets/generated/effect-win.webp',
+    tequilaParty: 'assets/generated/effect-tequila.webp',
+    guard: 'assets/generated/effect-guard.webp',
+    win: 'assets/generated/effect-win.webp',
   },
   resultBadge: {
-    winner: 'assets/generated/badge-winner.png',
-    survivor: 'assets/generated/badge-survivor.png',
-    victim: 'assets/generated/badge-victim.png',
-    drunkKing: 'assets/generated/badge-drunk-king.png',
+    winner: 'assets/generated/badge-winner.webp',
+    survivor: 'assets/generated/badge-survivor.webp',
+    victim: 'assets/generated/badge-victim.webp',
+    drunkKing: 'assets/generated/badge-drunk-king.webp',
   },
 };
 
@@ -107,9 +107,12 @@ function buildDeck() {
   return shuffle(deck);
 }
 
-function buildActionPool() {
+function buildActionPool(playerCount = Infinity) {
+  // 2人プレイでは reverse（自分のターンに戻るだけ）と skip（相手だけ連続飛ばし）が機能しない
+  const excluded = playerCount <= 2 ? new Set(['reverse', 'skip']) : new Set();
   const pool = [];
   for (const [id, count] of Object.entries(ACTION_COUNTS)) {
+    if (excluded.has(id)) continue;
     for (let i = 0; i < count; i++) pool.push({ ...ACTION_DEFS[id] });
   }
   return shuffle(pool);
@@ -179,7 +182,7 @@ function initState(playerName, cpuCount, maxCycles, humanCharacter, cpuCharacter
 }
 
 function initStatePvp(seats, maxCycles) {
-  const actionPool = buildActionPool();
+  const actionPool = buildActionPool(seats.length);
   const players = seats.map((s, i) => createPlayer(`p${i}`, s.name, true, s.character));
   dealHands(players, actionPool);
   return {
@@ -1257,12 +1260,14 @@ function renderHand() {
 
     const el = document.createElement('button');
     el.className = 'action-card';
+    el.dataset.card = card.id;
     el.style.setProperty('--card-accent', `var(${def.accent})`);
+    el.style.setProperty('--card-art', `url("${def.art}")`);
+    el.setAttribute('aria-label', `${def.label}。${def.effect}`);
 
-    const iconEl = document.createElement('div'); iconEl.className = 'card-icon';   iconEl.textContent = def.icon;
     const nameEl = document.createElement('div'); nameEl.className = 'card-name';   nameEl.textContent = def.label;
     const effEl  = document.createElement('div'); effEl.className  = 'card-effect'; effEl.textContent  = def.effect;
-    el.append(iconEl, nameEl, effEl);
+    el.append(nameEl, effEl);
 
     el.addEventListener('click', () => onPlayerCardClick(card.id));
     grid.appendChild(el);
