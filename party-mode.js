@@ -22,12 +22,12 @@ const ACTION_DEFS = {
 const ACTION_COUNTS = { reverse:4, force:4, target:4, double:4, peek:4, skip:4, dodge:4, guard:4 };
 
 const CHARACTERS = [
-  { id: 'koji',  name: 'こーじ',  avatar: 'assets/koji.png',      gender: 'male',   cpuLevel: 'hard' },
-  { id: 'ryota', name: 'りょーた', avatar: 'assets/ryota.png',     gender: 'male',   cpuLevel: 'hard' },
-  { id: 'osho',  name: 'おしょー', avatar: 'assets/osho.png',      gender: 'male',   cpuLevel: 'hard' },
-  { id: 'nana',  name: 'なな',     avatar: 'assets/nana.png',      gender: 'female', cpuLevel: 'easy' },
-  { id: 'yapi',  name: 'やぴ',     avatar: 'assets/yapi-card.png', gender: 'female', cpuLevel: 'easy' },
-  { id: 'milk',  name: 'みるく',   avatar: 'assets/milk-card.png', gender: 'female', cpuLevel: 'easy' },
+  { id: 'koji',  name: 'こーじ',  avatar: 'assets/koji.png',      gender: 'male',   cpuLevel: 'hard'   },
+  { id: 'ryota', name: 'りょーた', avatar: 'assets/ryota.png',     gender: 'male',   cpuLevel: 'normal' },
+  { id: 'osho',  name: 'おしょー', avatar: 'assets/osho.png',      gender: 'male',   cpuLevel: 'hard'   },
+  { id: 'nana',  name: 'なな',     avatar: 'assets/nana.png',      gender: 'female', cpuLevel: 'easy'   },
+  { id: 'yapi',  name: 'やぴ',     avatar: 'assets/yapi-card.png', gender: 'female', cpuLevel: 'normal' },
+  { id: 'milk',  name: 'みるく',   avatar: 'assets/milk-card.png', gender: 'female', cpuLevel: 'easy'   },
 ];
 
 const DEFAULT_HUMAN_CHARACTER_ID = 'yapi';
@@ -43,6 +43,16 @@ const CPU_LEVELS = {
     reverseHarassChance: 0.42,
     targetBestChance: 0.88,
     safeChainChance: 0.24,
+  },
+  normal: {
+    label: 'ふつう',
+    peekChance: 0.73,
+    dangerAvoidChance: 0.79,
+    kanpaiAvoidChance: 0.65,
+    harassChance: 0.42,
+    reverseHarassChance: 0.32,
+    targetBestChance: 0.75,
+    safeChainChance: 0.41,
   },
   easy: {
     label: 'やさしめ',
