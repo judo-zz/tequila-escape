@@ -111,6 +111,7 @@ button:disabled {
 .party-start-btn,
 .draw-btn,
 .end-turn-btn,
+.stage-end-turn-btn,
 .peek-close-btn,
 .target-cancel-btn,
 .target-btn,
@@ -118,6 +119,8 @@ button:disabled {
 .pvp-count-btn,
 .mode-btn,
 .pvp-gametype-btn,
+.pvp-cardset-btn,
+.pvp-tequila-btn,
 .pvp-hp-btn,
 .round-btn,
 .top-btn,
@@ -132,6 +135,7 @@ button:disabled {
 .party-start-btn:active,
 .draw-btn:active:not(:disabled),
 .end-turn-btn:active:not(:disabled),
+.stage-end-turn-btn:active:not(:disabled),
 .peek-close-btn:active,
 .target-cancel-btn:active,
 .target-btn:active,
@@ -139,6 +143,8 @@ button:disabled {
 .pvp-count-btn:active,
 .mode-btn:active,
 .pvp-gametype-btn:active,
+.pvp-cardset-btn:active,
+.pvp-tequila-btn:active,
 .pvp-hp-btn:active,
 .round-btn:active,
 .top-btn:active,
@@ -749,6 +755,8 @@ button:disabled {
 .pvp-count-btn,
 .mode-btn,
 .pvp-gametype-btn,
+.pvp-cardset-btn,
+.pvp-tequila-btn,
 .pvp-hp-btn,
 .round-btn {
   flex: 1 1 0;
@@ -765,6 +773,8 @@ button:disabled {
 .pvp-count-btn.active,
 .mode-btn.active,
 .pvp-gametype-btn.active,
+.pvp-cardset-btn.active,
+.pvp-tequila-btn.active,
 .pvp-hp-btn.active,
 .round-btn.active {
   background: linear-gradient(180deg, #FF76AA, var(--pink-deep));
@@ -795,6 +805,35 @@ button:disabled {
   font-family: var(--font-title);
 }
 
+.cardset-choice,
+.tequila-choice {
+  margin-top: 14px;
+}
+
+.setup-label-sub {
+  margin-bottom: 7px;
+  font-size: 0.76rem;
+}
+
+.cardset-choice-row,
+.tequila-choice-row {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 230, 122, 0.26), transparent 48%),
+    radial-gradient(circle at 80% 0%, rgba(255, 45, 111, 0.2), transparent 55%),
+    rgba(13, 0, 9, 0.9);
+}
+
+.pvp-cardset-btn,
+.pvp-tequila-btn {
+  min-height: 42px;
+  border-radius: 12px;
+  font-family: var(--font-title);
+}
+
+.tequila-choice[hidden] {
+  display: none !important;
+}
+
 .hp-choice-row {
   margin: 10px 0 0;
   padding: 7px 8px;
@@ -810,6 +849,10 @@ button:disabled {
 
 #pvp-gametype-hint {
   margin: 10px 0 0;
+}
+
+#pvp-cardset-hint {
+  margin: 8px 0 0;
 }
 
 .hp-choice-label {
@@ -1110,13 +1153,13 @@ button:disabled {
   position: relative;
   width: 100%;
   min-width: 0;
-  min-height: 74px;
+  min-height: 84px;
   display: grid;
-  grid-template-rows: 26px auto auto;
+  grid-template-rows: 40px auto auto;
   align-items: center;
   justify-items: center;
   gap: 2px;
-  padding: 6px 4px 5px;
+  padding: 7px 4px 5px;
   border: 3px solid var(--border);
   border-radius: 16px;
   background:
@@ -1170,9 +1213,9 @@ button:disabled {
   z-index: 1;
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  margin: -2px 0 0;
+  width: 42px;
+  height: 42px;
+  margin: -1px 0 0;
   border: 2px solid var(--border);
   border-radius: 50%;
   background: #FFF3D2;
@@ -1317,10 +1360,10 @@ button:disabled {
 }
 
 .chip-turn-badge {
-  left: 50%;
+  left: 4px;
   right: auto;
-  top: -2px;
-  transform: translateX(-50%);
+  top: 3px;
+  transform: none;
   background: linear-gradient(180deg, #FFF3D2, #FFE46A);
   color: var(--pink-deep);
 }
@@ -1611,6 +1654,52 @@ button:disabled {
   overflow: hidden;
 }
 
+.event-card.is-drawable {
+  cursor: pointer;
+  border-color: #FFE46A;
+  box-shadow:
+    var(--shadow-md),
+    0 0 0 4px rgba(255, 228, 106, 0.16),
+    0 0 22px rgba(255, 228, 106, 0.72),
+    0 0 38px rgba(255, 45, 111, 0.48);
+  animation: eventDrawPulse 1.05s ease-in-out infinite;
+}
+
+.event-card.is-drawable::before {
+  border-color: rgba(255, 45, 111, 0.44);
+  box-shadow: inset 0 0 16px rgba(255, 228, 106, 0.35);
+}
+
+.event-card.is-drawable::after {
+  height: 78px;
+  background:
+    radial-gradient(ellipse at 50% 100%, rgba(0, 0, 0, 0.34), transparent 70%),
+    linear-gradient(104deg, transparent 18%, rgba(255, 255, 255, 0.42) 48%, transparent 72%);
+  transform: translateX(-80%);
+  animation: eventDrawShine 1.65s ease-in-out infinite;
+}
+
+.event-card.is-drawable:hover,
+.event-card.is-drawable:focus-visible {
+  transform: translateY(-3px) rotate(2deg) scale(1.02);
+}
+
+.event-card.is-drawable:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.82);
+  outline-offset: 4px;
+}
+
+.event-card.is-drawable .event-card-kicker {
+  background: rgba(255, 45, 111, 0.12);
+  color: var(--pink-deep);
+  border-color: rgba(255, 45, 111, 0.45);
+}
+
+.event-card.is-drawable .event-card-action {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .event-card.has-art {
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.68)),
@@ -1671,7 +1760,8 @@ button:disabled {
 
 .event-card-kicker,
 .event-card-title,
-.event-card-copy {
+.event-card-copy,
+.event-card-action {
   position: relative;
   z-index: 1;
 }
@@ -1699,6 +1789,56 @@ button:disabled {
   color: rgba(26, 21, 22, 0.62);
   font-size: 0.64rem;
   line-height: 1.35;
+}
+
+.event-card-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 21px;
+  padding: 3px 8px 2px;
+  border: 2px solid rgba(255, 45, 111, 0.45);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #FF8FC0, var(--pink-deep));
+  color: var(--white);
+  font-family: var(--font-en);
+  font-size: 0.52rem;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.34);
+}
+
+.stage-end-turn-btn {
+  position: absolute;
+  z-index: 8;
+  top: -36px;
+  right: 10px;
+  min-height: 29px;
+  padding: 5px 12px 4px;
+  border-width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #FFF3D2, #D7A84F);
+  color: var(--ink);
+  font-family: var(--font-title);
+  font-size: 0.62rem;
+  line-height: 1;
+  transform: translateY(6px) scale(0.96);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stage-end-turn-btn.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.stage-end-turn-btn:disabled {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .event-tequila {
@@ -2325,6 +2465,32 @@ button:disabled {
   animation: cutinFlash 1.4s ease-out;
 }
 
+.party-cutin.show.is-mega {
+  animation: cutinMegaFlash 2.2s ease-out;
+}
+
+.party-cutin.is-mega {
+  background:
+    repeating-linear-gradient(-18deg, rgba(255, 228, 106, 0.28) 0 10px, rgba(255, 45, 111, 0.38) 10px 22px),
+    radial-gradient(circle at 50% 50%, rgba(255, 45, 111, 0.32), transparent 54%),
+    rgba(0, 0, 0, 0.72);
+}
+
+.party-cutin.is-mega::before {
+  opacity: 0.76;
+  filter: saturate(1.35) contrast(1.08);
+}
+
+.party-cutin.is-mega .cutin-title {
+  border-color: #FFE46A;
+  background: linear-gradient(180deg, #FFF3D2, #FF76AA 68%, #D9005C);
+  color: var(--white);
+  font-size: clamp(2.1rem, 10vw, 3.3rem);
+  text-shadow:
+    3px 3px 0 #080006,
+    0 0 22px rgba(255, 228, 106, 0.9);
+}
+
 .cutin-kicker,
 .cutin-title {
   position: relative;
@@ -2332,6 +2498,11 @@ button:disabled {
   display: block;
   width: min(100%, 340px);
   text-align: center;
+}
+
+#game-screen.impact-mega .party-board,
+#game-screen.impact-mega .game-hud {
+  animation: boardImpact 0.72s ease-out;
 }
 
 .cutin-kicker {
@@ -2623,13 +2794,14 @@ button:disabled {
   }
 
   .player-chip {
-    min-height: 48px;
-    padding-block: 6px;
+    min-height: 68px;
+    grid-template-rows: 34px auto auto;
+    padding-block: 6px 5px;
   }
 
   .chip-avatar {
-    width: 28px;
-    height: 28px;
+    width: 36px;
+    height: 36px;
   }
 
   .game-stage {
@@ -2753,6 +2925,23 @@ button:disabled {
   100% { opacity: 0; transform: scale(0.96); }
 }
 
+@keyframes cutinMegaFlash {
+  0%   { opacity: 0; transform: scale(1.22) rotate(-1deg); }
+  9%   { opacity: 1; transform: scale(0.98) rotate(1deg); }
+  18%  { opacity: 1; transform: scale(1.04) rotate(-1deg); }
+  76%  { opacity: 1; transform: scale(1) rotate(0); }
+  100% { opacity: 0; transform: scale(0.92) rotate(1deg); }
+}
+
+@keyframes boardImpact {
+  0%   { transform: translateX(0); filter: brightness(1); }
+  14%  { transform: translateX(-8px) rotate(-0.6deg); filter: brightness(1.25); }
+  28%  { transform: translateX(7px) rotate(0.6deg); }
+  42%  { transform: translateX(-5px) rotate(-0.4deg); }
+  58%  { transform: translateX(4px) rotate(0.3deg); }
+  100% { transform: translateX(0); filter: brightness(1); }
+}
+
 @keyframes eventCardFlip {
   0% {
     transform: rotate(2deg) rotateY(0deg) scale(1);
@@ -2765,6 +2954,29 @@ button:disabled {
   100% {
     transform: rotate(2deg) rotateY(0deg) scale(1);
     filter: brightness(1);
+  }
+}
+
+@keyframes eventDrawPulse {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.08) saturate(1.1);
+  }
+}
+
+@keyframes eventDrawShine {
+  0% {
+    transform: translateX(-92%) rotate(7deg);
+    opacity: 0;
+  }
+  35% {
+    opacity: 0.72;
+  }
+  72%, 100% {
+    transform: translateX(92%) rotate(7deg);
+    opacity: 0;
   }
 }
 

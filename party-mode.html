@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Kaisei+Opti:wght@700&family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="party-mode.css">
+  <link rel="stylesheet" href="party-mode.css?v=20260501-party-polish">
 </head>
 <body>
 <div id="app">
@@ -159,6 +159,22 @@
           <button class="pvp-hp-btn active" data-hp="5" aria-pressed="true">5</button>
         </div>
         <p id="pvp-gametype-hint" class="setup-hint">2周プレイ。一番酔いが少なかったプレイヤーの勝ち。</p>
+        <div id="pvp-tequila-options" class="tequila-choice">
+          <label class="setup-label setup-label-sub">テキーラ杯数</label>
+          <div class="rule-choice-row tequila-choice-row" role="group" aria-label="通常モードのテキーラ杯数">
+            <button class="pvp-tequila-btn active" data-tequila="6" aria-pressed="true">6杯</button>
+            <button class="pvp-tequila-btn" data-tequila="8" aria-pressed="false">8杯</button>
+            <button class="pvp-tequila-btn" data-tequila="10" aria-pressed="false">10杯</button>
+          </div>
+        </div>
+        <div class="cardset-choice">
+          <label class="setup-label setup-label-sub">カード構成</label>
+          <div class="rule-choice-row cardset-choice-row" role="group" aria-label="カード構成">
+            <button class="pvp-cardset-btn active" data-cardset="simple" aria-pressed="true">シンプル</button>
+            <button class="pvp-cardset-btn" data-cardset="normal" aria-pressed="false">ノーマル</button>
+          </div>
+          <p id="pvp-cardset-hint" class="setup-hint">手札なし。山札だけをめくる超シンプル版。</p>
+        </div>
       </div>
 
       <div class="setup-section" data-mode-section="pvp" hidden>
@@ -232,15 +248,17 @@
       <!-- Stage: whose turn / log -->
       <div class="game-stage">
         <div id="turn-banner" class="turn-banner">あなたのターン</div>
-        <div class="deck-scene" aria-hidden="true">
+        <div class="deck-scene">
           <div class="deck-pile">
             <img src="assets/generated/party-deck-back-purple.webp" alt="">
           </div>
-          <div id="event-card" class="event-card event-waiting">
+          <div id="event-card" class="event-card event-waiting" role="button" tabindex="0" aria-label="山札を引く">
             <span id="event-card-kicker" class="event-card-kicker">NEXT DRAW</span>
             <strong id="event-card-title" class="event-card-title">山札</strong>
             <span id="event-card-copy" class="event-card-copy">一枚引くまで、運命は伏せられている。</span>
+            <span id="event-card-action" class="event-card-action" aria-hidden="true">TAP TO DRAW</span>
           </div>
+          <button id="stage-end-turn-btn" class="stage-end-turn-btn" type="button" disabled>ターン終了</button>
           <div class="discard-pile">
             <img src="assets/generated/party-deck-back-red.webp" alt="">
             <span>捨て札</span>
@@ -294,8 +312,8 @@
         <div id="pass-kicker" class="pass-kicker">PASS</div>
         <img id="pass-avatar" class="pass-avatar" src="" alt="" aria-hidden="true">
         <div id="pass-name" class="pass-name"></div>
-        <div id="pass-note" class="pass-note">他の人に見られてないか確認したら、めくろう。</div>
-        <button id="pass-reveal-btn" class="pass-reveal-btn" type="button">準備OK、めくる</button>
+        <div id="pass-note" class="pass-note">他の人に見られてないか確認してね</div>
+        <button id="pass-reveal-btn" class="pass-reveal-btn" type="button">準備OK</button>
       </div>
     </div>
 
@@ -331,6 +349,6 @@
   <div id="toast-msg" class="toast"></div>
 
 </div>
-<script src="party-mode.js" defer></script>
+<script src="party-mode.js?v=20260501-party-polish" defer></script>
 </body>
 </html>

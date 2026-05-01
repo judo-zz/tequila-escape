@@ -20,6 +20,7 @@ const ACTION_DEFS = {
 };
 
 const ACTION_COUNTS = { reverse:4, force:4, target:4, double:4, peek:4, skip:4, dodge:4, guard:4 };
+const SIMPLE_ACTION_COUNTS = { force:6, target:6, peek:6, guard:6 };
 
 const DEFAULT_ELIMINATION_HP = 5;
 
@@ -132,6 +133,8 @@ let pvpCount = 2;
 let pvpSeats = []; // [{ name: string, characterId: string }]
 let pvpGameType = 'standard'; // 'standard' | 'elimination'
 let pvpInitialHp = DEFAULT_ELIMINATION_HP;
+let pvpCardSet = 'simple'; // 'simple' | 'normal'
+let pvpTequilaCount = 6;
 
 const EVENT_COPY = {
   safe:    { tone:'safe',    kicker:'SAFE',   title:'セーフ',           copy:'息を止めてめくった一枚は、まだ夜を壊さない。' },
@@ -168,21 +171,27 @@ const GENERATED_ASSETS = {
 // ── State ──
 let state = null;
 
-function buildDeck(pvp = false) {
+function buildDeck(pvp = false, options = {}) {
   const excluded = pvp ? new Set() : new Set(['kanpai', 'tequila_party']);
+  const tequilaCount = Number.isFinite(options.tequilaCount) ? options.tequilaCount : null;
+  const tequilaPartyCount = Number.isFinite(options.tequilaPartyCount) ? options.tequilaPartyCount : null;
   const deck = [];
   for (const c of DECK_CARDS) {
     if (excluded.has(c.id)) continue;
-    for (let i = 0; i < c.count; i++) deck.push({ ...c });
+    let count = c.count;
+    if (c.id === 'tequila' && tequilaCount !== null) count = tequilaCount;
+    if (c.id === 'tequila_party' && tequilaPartyCount !== null) count = tequilaPartyCount;
+    for (let i = 0; i < count; i++) deck.push({ ...c });
   }
   return shuffle(deck);
 }
 
-function buildActionPool(playerCount = Infinity) {
+function buildActionPool(playerCount = Infinity, cardSet = 'normal') {
   // 2人プレイでは reverse（自分のターンに戻るだけ）と skip（相手だけ連続飛ばし）が機能しない
   const excluded = playerCount <= 2 ? new Set(['reverse', 'skip']) : new Set();
+  const counts = cardSet === 'simple' ? SIMPLE_ACTION_COUNTS : ACTION_COUNTS;
   const pool = [];
-  for (const [id, count] of Object.entries(ACTION_COUNTS)) {
+  for (const [id, count] of Object.entries(counts)) {
     if (excluded.has(id)) continue;
     for (let i = 0; i < count; i++) pool.push({ ...ACTION_DEFS[id] });
   }
@@ -255,15 +264,18 @@ function initState(playerName, cpuCount, maxCycles, humanCharacter, cpuCharacter
   };
 }
 
-function initStatePvp(seats, maxCycles, gameType = 'standard', initialHp = DEFAULT_ELIMINATION_HP) {
-  const actionPool = buildActionPool(seats.length);
+function initStatePvp(seats, maxCycles, gameType = 'standard', initialHp = DEFAULT_ELIMINATION_HP, cardSet = 'normal', tequilaCount = 6) {
+  const isSimple = cardSet === 'simple';
+  const tequilaPartyCount = isSimple ? randomInt(2, 3) : 1;
+  const effectiveTequilaCount = gameType === 'standard' ? tequilaCount : 6;
+  const actionPool = isSimple ? [] : buildActionPool(seats.length, cardSet);
   const players = seats.map((s, i) => createPlayer(`p${i}`, s.name, true, s.character));
   players.forEach(p => { p.hp = initialHp; });
-  dealHands(players, actionPool);
+  if (!isSimple) dealHands(players, actionPool);
   return {
     players,
     actionPool,
-    deck: buildDeck(true),
+    deck: buildDeck(true, { tequilaCount: effectiveTequilaCount, tequilaPartyCount }),
     deckDiscard: [],
     actionDiscard: [],
     turnOrder: players.map((_, i) => i),
@@ -289,6 +301,9 @@ function initStatePvp(seats, maxCycles, gameType = 'standard', initialHp = DEFAU
     gameMode: 'pvp',
     gameType,
     initialHp,
+    cardSet,
+    tequilaCount: effectiveTequilaCount,
+    tequilaPartyCount,
   };
 }
 
@@ -350,15 +365,16 @@ function onDeckCycleEnd() {
     return false;
   }
 
-  // 捨て札 + テキーラ2枚追加でデッキ再構築、全員手札+1
+  // 捨て札 + テキーラ2枚追加でデッキ再構築
   const extra = [
     { id: 'tequila', label: 'テキーラ', count: 1, type: 'deck' },
     { id: 'tequila', label: 'テキーラ', count: 1, type: 'deck' },
   ];
   state.deck = shuffle([...state.deckDiscard, ...extra]);
   state.deckDiscard = [];
-  state.players.forEach(p => replenishHand(p));
-  addLog(`▶ ${state.deckCycle}周目終了！ テキーラ+2 全員手札+1 → ${state.deckCycle + 1}周目スタート`, 'log-card');
+  if (!isSimplePvpState()) state.players.forEach(p => replenishHand(p));
+  const refillText = isSimplePvpState() ? '' : ' 全員手札+1';
+  addLog(`▶ ${state.deckCycle}周目終了！ テキーラ+2${refillText} → ${state.deckCycle + 1}周目スタート`, 'log-card');
   showCutin(`${state.deckCycle + 1}周目スタート`, 'テキーラが増えた……');
   return true;
 }
@@ -368,6 +384,7 @@ function peekDeck() {
 }
 
 function replenishHand(player) {
+  if (isSimplePvpState()) return;
   if (state.actionPool.length === 0) {
     // プールが空なら捨て札をシャッフルして復活
     if (state.actionDiscard.length === 0) return;
@@ -418,7 +435,9 @@ function setLastEvent(kind, playerName, title = null, copy = null) {
 
 function applyTequilaHit(player, gain, label = 'テキーラ！') {
   player.drunk += gain;
-  for (let i = 0; i < gain; i++) replenishHand(player);
+  if (!isSimplePvpState()) {
+    for (let i = 0; i < gain; i++) replenishHand(player);
+  }
   const extra = gain > 1 ? ` (+${gain})` : '';
   addLog(`${player.name} → ${label}🥃 酔い${extra}`, 'log-tequila');
 
@@ -444,6 +463,10 @@ function checkEliminationGameOver() {
     return true;
   }
   return false;
+}
+
+function isSimplePvpState() {
+  return state?.gameMode === 'pvp' && state.cardSet === 'simple';
 }
 
 function consumeNoDrinkGuard(player, cardId) {
@@ -518,7 +541,9 @@ function resolveDrawCard(card, player, kanpaiNested = false) {
     state.dodgeStack = 0;
     if (checkEliminationGameOver()) { finishGame(); return; }
     setLastEvent('tequilaParty', player.name);
-    showCutin('全員強制テキーラ乾杯！', '逃げ場なし');
+    showSfx('全員飲めー！！', 1400);
+    triggerBoardImpact();
+    showCutin('全員強制テキーラ乾杯！', '全員、逃げ場なし！！', 2200, 'mega');
     return;
   }
 
@@ -703,7 +728,7 @@ function resolveSkips(depth) {
       state.forceDrawTarget = null;
       state.forcedDrawPending = { sourcePlayerName: null, reason: 'force' };
     }
-    state.phase = 'PASS';
+    state.phase = isSimplePvpState() ? 'PLAYER_TURN' : 'PASS';
     renderAll();
     return;
   }
@@ -1073,7 +1098,11 @@ function shuffle(arr) {
   return a;
 }
 
-function showSfx(text) {
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function showSfx(text, duration = 900) {
   const el = $('sfx-text');
   el.textContent = text;
   announce(text);
@@ -1081,12 +1110,13 @@ function showSfx(text) {
   void el.offsetWidth;
   el.classList.add('show');
   clearTimeout(showSfx._tid);
-  showSfx._tid = setTimeout(() => el.classList.remove('show'), 900);
+  showSfx._tid = setTimeout(() => el.classList.remove('show'), duration);
 }
 
-function showCutin(title, kicker) {
+function showCutin(title, kicker, duration = 1400, variant = '') {
   const el = $('cutin');
   el.classList.remove('hidden');
+  el.classList.toggle('is-mega', variant === 'mega');
   $('cutin-title').textContent  = title;
   $('cutin-kicker').textContent = kicker;
   const art = cutinArtForTitle(title);
@@ -1098,8 +1128,21 @@ function showCutin(title, kicker) {
   clearTimeout(showCutin._tid);
   showCutin._tid = setTimeout(() => {
     el.classList.remove('show');
-    setTimeout(() => el.classList.add('hidden'), 200);
-  }, 1400);
+    setTimeout(() => {
+      el.classList.add('hidden');
+      el.classList.remove('is-mega');
+    }, 200);
+  }, duration);
+}
+
+function triggerBoardImpact() {
+  const screen = $('game-screen');
+  if (!screen) return;
+  screen.classList.remove('impact-mega');
+  void screen.offsetWidth;
+  screen.classList.add('impact-mega');
+  clearTimeout(triggerBoardImpact._tid);
+  triggerBoardImpact._tid = setTimeout(() => screen.classList.remove('impact-mega'), 760);
 }
 
 function cutinArtForTitle(title) {
@@ -1346,7 +1389,7 @@ function renderHumanStatus(currentPlayerIdx) {
     : `🥃 ${human.drunk}`;
   const handCount = document.createElement('span');
   handCount.className = 'human-hand-count';
-  handCount.textContent = `手札 ${human.hand.length}`;
+  handCount.textContent = isSimplePvpState() ? '手札なし' : `手札 ${human.hand.length}`;
   head.append(name, value, handCount);
   if (state.gameType === 'elimination') {
     const hpSpan = document.createElement('span');
@@ -1430,17 +1473,19 @@ function renderStage() {
           ? `${src} から「お前が飲め！」— 山札を引かされます。`
           : '「とりあえず一杯」— 山札を引かされます。';
       } else if (noteEl) {
-        noteEl.textContent = '他の人に見られてないか確認したら、めくろう。';
+        noteEl.textContent = '他の人に見られてないか確認してね';
       }
       const revealBtn = $('pass-reveal-btn');
-      if (revealBtn) revealBtn.textContent = '準備OK、めくる';
+      if (revealBtn) revealBtn.textContent = '準備OK';
       passOverlay.classList.remove('hidden');
     } else {
       passOverlay.classList.add('hidden');
     }
   }
 
-  if (isKanpaiDraw) {
+  if (state.phase === 'KANPAI_SETTLE') {
+    banner.textContent = '乾杯の余韻…';
+  } else if (isKanpaiDraw) {
     banner.textContent = '🥂 全員乾杯！';
   } else if (isForcedDraw) {
     const fp = state.forcedDrawPending;
@@ -1485,6 +1530,11 @@ function renderEventCard() {
   const card = $('event-card');
   if (!card) return;
   card.className = `event-card event-${event.tone}`;
+  const canDrawFromStage = canUseStageDraw();
+  card.classList.toggle('is-drawable', canDrawFromStage);
+  card.setAttribute('aria-label', canDrawFromStage ? '山札を引く' : `${event.kicker} ${event.title}`);
+  card.setAttribute('aria-disabled', canDrawFromStage ? 'false' : 'true');
+  card.tabIndex = canDrawFromStage ? 0 : -1;
   const art = eventArtFor(event);
   card.classList.toggle('has-art', Boolean(art));
   if (art) card.style.setProperty('--event-art', `url("${art}")`);
@@ -1501,6 +1551,11 @@ function renderEventCard() {
   }
 }
 
+function canUseStageDraw() {
+  if (!state || state.gameOverPending) return false;
+  return state.phase === 'PLAYER_TURN' || (state.phase === 'FORCED_DRAW' && Boolean(state.forcedDrawPending));
+}
+
 function eventArtFor(event) {
   if (event.kind === 'tequilaParty') return GENERATED_ASSETS.eventArt.tequilaParty;
   if (event.kind === 'kanpai') return GENERATED_ASSETS.eventArt.kanpai;
@@ -1513,8 +1568,9 @@ function renderHand() {
   const area = $('hand-area');
   const isPlayerTurn  = state.phase === 'PLAYER_TURN';
   const isForcedDraw  = state.phase === 'FORCED_DRAW';
-  area.classList.toggle('hidden', !isPlayerTurn && !isForcedDraw);
-  if (!isPlayerTurn && !isForcedDraw) {
+  const isSimplePvp = isSimplePvpState();
+  area.classList.toggle('hidden', isSimplePvp || (!isPlayerTurn && !isForcedDraw));
+  if (isSimplePvp || (!isPlayerTurn && !isForcedDraw)) {
     area.classList.remove('is-private');
     area.onclick = null;
     return;
@@ -1592,6 +1648,7 @@ function renderActionBar() {
   const endBtn  = $('end-turn-btn');
   const badge   = $('draw-badge');
   const bar     = $('action-bar');
+  const stageEndBtn = $('stage-end-turn-btn');
 
   const isForcedDraw = state.phase === 'FORCED_DRAW';
   bar.classList.toggle('is-forced', isForcedDraw);
@@ -1599,6 +1656,11 @@ function renderActionBar() {
   bar.classList.toggle('can-end', isPlayerTurn && state.hasDrawnThisTurn);
   drawBtn.disabled = (!isPlayerTurn && !isForcedDraw) || isGameOver;
   endBtn.disabled  = !isPlayerTurn || !state.hasDrawnThisTurn;
+  if (stageEndBtn) {
+    const canEnd = isPlayerTurn && state.hasDrawnThisTurn;
+    stageEndBtn.disabled = !canEnd;
+    stageEndBtn.classList.toggle('is-visible', canEnd);
+  }
   badge.textContent = state.deck.length > 0 ? `残${state.deck.length}` : '空';
   badge.setAttribute('aria-label', state.deck.length > 0 ? `山札 残り ${state.deck.length} 枚` : '山札は空');
 
@@ -1949,8 +2011,8 @@ function startGame() {
       const character = getCharacter(s.characterId || pvpFallbackCharacter(i));
       return { name: (s.name?.trim() || character.name).slice(0, 8), character };
     });
-    state = initStatePvp(seats, maxCycles, pvpGameType, pvpInitialHp);
-    state.phase = 'PASS';
+    state = initStatePvp(seats, maxCycles, pvpGameType, pvpInitialHp, pvpCardSet, pvpTequilaCount);
+    state.phase = isSimplePvpState() ? 'PLAYER_TURN' : 'PASS';
   } else {
     const name = $('player-name').value.trim() || 'あなた';
     const cpuCount = selectedCpuCount();
@@ -1981,6 +2043,7 @@ function onPassRevealClick() {
     const p = state.players[idx];
     const c = drawFromDeck();
     if (c) resolveDrawCard(c, p, /* kanpaiNested= */ true);
+    const lastDrawKind = c?.id || 'safe';
 
     // 脱落でゲーム終了した場合はそのまま終わる
     if (state.gameOverPending && state.phase === 'RESULT') return;
@@ -1992,10 +2055,19 @@ function onPassRevealClick() {
       // まだ引いていないプレイヤーがいる
       renderAll();
     } else {
-      // 全員引き終わり → 手番プレイヤーのターンに戻す
-      state.phase = 'PLAYER_TURN';
-      state.handRevealed = state.gameMode !== 'pvp';
+      // 全員引き終わり。最後の結果を少し見せてから手番プレイヤーのターンに戻す。
+      state.phase = 'KANPAI_SETTLE';
+      state.handRevealed = true;
+      const label = lastDrawKind === 'tequila' || lastDrawKind === 'tequila_party' ? 'ラストHIT！' : 'ラストSAFE！';
+      showSfx(label, 1300);
       renderAll();
+      clearTimeout(onPassRevealClick._kanpaiSettleTid);
+      onPassRevealClick._kanpaiSettleTid = setTimeout(() => {
+        if (!state || state.phase !== 'KANPAI_SETTLE') return;
+        state.phase = 'PLAYER_TURN';
+        state.handRevealed = state.gameMode !== 'pvp';
+        renderAll();
+      }, 1250);
     }
     return;
   }
@@ -2109,26 +2181,38 @@ function switchSetupMode(mode) {
 function updatePvpRuleUi() {
   const hpOptions = $('pvp-hp-options');
   if (hpOptions) hpOptions.hidden = pvpGameType !== 'elimination';
+  const tequilaOptions = $('pvp-tequila-options');
+  if (tequilaOptions) tequilaOptions.hidden = pvpGameType !== 'standard';
 
   const hint = $('pvp-gametype-hint');
   if (!hint) return;
   hint.textContent = pvpGameType === 'elimination'
     ? `HP${pvpInitialHp}からスタート。テキーラをHPぶん飲んだら脱落。最後まで生き残ったプレイヤーの勝ち！`
     : '2周プレイ。一番酔いが少なかったプレイヤーの勝ち。';
+
+  const cardsetHint = $('pvp-cardset-hint');
+  if (cardsetHint) {
+    cardsetHint.textContent = pvpCardSet === 'simple'
+      ? '手札なし。山札だけをめくる超シンプル版。強制テキーラ乾杯は毎回2〜3枚。'
+      : '8種類ぜんぶ入り。方向逆・スキップ・回避・倍プッシュまで入る読み合い重視。';
+  }
 }
 
 function clearTransientUI() {
   clearTimeout(showSfx._tid);
   clearTimeout(showCutin._tid);
   clearTimeout(showToast._tid);
+  clearTimeout(onPassRevealClick._kanpaiSettleTid);
+  clearTimeout(triggerBoardImpact._tid);
   $('peek-overlay').classList.add('hidden');
   $('target-overlay').classList.add('hidden');
   $('pass-overlay')?.classList.add('hidden');
   $('help-overlay').classList.add('hidden');
   $('cutin').classList.add('hidden');
-  $('cutin').classList.remove('show');
+  $('cutin').classList.remove('show', 'is-mega');
   $('sfx-text').classList.remove('show');
   $('toast-msg').classList.remove('show');
+  $('game-screen')?.classList.remove('impact-mega');
 }
 
 function restartGame() {
@@ -2146,8 +2230,8 @@ function playAgain() {
       name: p.name,
       character: getCharacter(p.characterId),
     }));
-    state = initStatePvp(seats, maxCycles, state.gameType || pvpGameType, state.initialHp || pvpInitialHp);
-    state.phase = 'PASS';
+    state = initStatePvp(seats, maxCycles, state.gameType || pvpGameType, state.initialHp || pvpInitialHp, state.cardSet || pvpCardSet, state.tequilaCount || pvpTequilaCount);
+    state.phase = isSimplePvpState() ? 'PLAYER_TURN' : 'PASS';
   } else {
     const human = state.players.find(p => p.isHuman);
     const name = human?.name || 'あなた';
@@ -2179,6 +2263,17 @@ document.addEventListener('DOMContentLoaded', () => {
   $('top-btn').addEventListener('click', restartGame);
   $('draw-btn').addEventListener('click', onDrawClick);
   $('end-turn-btn').addEventListener('click', onEndTurnClick);
+  $('event-card').addEventListener('click', () => {
+    if (canUseStageDraw()) onDrawClick();
+  });
+  $('event-card').addEventListener('keydown', event => {
+    if (!canUseStageDraw()) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onDrawClick();
+    }
+  });
+  $('stage-end-turn-btn').addEventListener('click', onEndTurnClick);
   $('peek-close').addEventListener('click', () => $('peek-overlay').classList.add('hidden'));
   $('target-cancel').addEventListener('click', () => $('target-overlay').classList.add('hidden'));
   $('pass-reveal-btn').addEventListener('click', onPassRevealClick);
@@ -2211,6 +2306,32 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.classList.add('active');
       btn.setAttribute('aria-pressed', 'true');
       pvpGameType = btn.dataset.gametype || 'standard';
+      updatePvpRuleUi();
+    });
+  });
+
+  document.querySelectorAll('.pvp-cardset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.pvp-cardset-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      pvpCardSet = btn.dataset.cardset || 'simple';
+      updatePvpRuleUi();
+    });
+  });
+
+  document.querySelectorAll('.pvp-tequila-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.pvp-tequila-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      pvpTequilaCount = parseInt(btn.dataset.tequila || '6', 10);
       updatePvpRuleUi();
     });
   });
