@@ -830,6 +830,23 @@ button:disabled {
   font-family: var(--font-title);
 }
 
+.choice-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  padding: 2px 7px 1px;
+  border: 2px solid rgba(255, 243, 210, 0.9);
+  border-radius: 999px;
+  background: rgba(255, 228, 106, 0.28);
+  color: var(--gold-soft);
+  font-family: var(--font-jp);
+  font-size: 0.52rem;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
+  vertical-align: middle;
+}
+
 .tequila-choice[hidden] {
   display: none !important;
 }
@@ -853,6 +870,30 @@ button:disabled {
 
 #pvp-cardset-hint {
   margin: 8px 0 0;
+}
+
+.pvp-cardset-guide {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+  padding: 11px 12px;
+  border: 2px solid rgba(22, 19, 19, 0.9);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 88% 10%, rgba(255, 45, 111, 0.2), transparent 28%),
+    linear-gradient(180deg, rgba(255, 253, 247, 0.84), rgba(255, 228, 106, 0.28));
+  color: rgba(26, 21, 22, 0.78);
+  box-shadow: var(--shadow-sm);
+}
+
+.pvp-cardset-guide strong {
+  color: var(--pink-deep);
+  font-size: 0.86rem;
+}
+
+.pvp-cardset-guide span {
+  font-size: 0.72rem;
+  line-height: 1.55;
 }
 
 .hp-choice-label {
@@ -1740,6 +1781,24 @@ button:disabled {
   animation: eventCardFlip 0.62s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+.event-card.is-drawing {
+  pointer-events: none;
+  border-color: #FFE46A;
+  box-shadow:
+    var(--shadow-md),
+    0 0 0 5px rgba(255, 228, 106, 0.24),
+    0 0 32px rgba(255, 228, 106, 0.82),
+    0 0 48px rgba(255, 45, 111, 0.64);
+  animation: eventDrawCommit 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.event-card.is-drawing .event-card-action {
+  opacity: 1;
+  transform: translateY(0);
+  background: linear-gradient(180deg, #FFE46A, #FF8B2F);
+  color: #24101C;
+}
+
 .event-card::before {
   content: "";
   position: absolute;
@@ -2606,6 +2665,44 @@ button:disabled {
   text-align: center;
 }
 
+.result-share-card {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 12% 20%, rgba(255, 228, 106, 0.34), transparent 28%),
+    linear-gradient(135deg, rgba(255, 45, 111, 0.92), rgba(46, 14, 32, 0.94));
+  color: var(--white);
+  text-align: center;
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.result-share-label {
+  color: var(--gold-soft);
+  font-family: var(--font-en);
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.55);
+}
+
+.result-catch {
+  font-family: var(--font-title);
+  font-size: clamp(1.05rem, 5.2vw, 1.32rem);
+  line-height: 1.25;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.46);
+}
+
+.result-scoreline {
+  color: rgba(255, 253, 247, 0.86);
+  font-size: 0.68rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
 .result-rankings {
   display: grid;
   gap: 8px;
@@ -2645,6 +2742,21 @@ button:disabled {
   color: var(--ink);
   font-size: 0.9rem;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rank-info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rank-title {
+  min-width: 0;
+  color: rgba(122, 39, 64, 0.78);
+  font-size: 0.62rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2963,6 +3075,21 @@ button:disabled {
   }
   50% {
     filter: brightness(1.08) saturate(1.1);
+  }
+}
+
+@keyframes eventDrawCommit {
+  0% {
+    transform: rotate(2deg) translateY(0) scale(1);
+    filter: brightness(1);
+  }
+  45% {
+    transform: rotate(1deg) translateY(-10px) scale(1.08);
+    filter: brightness(1.3) saturate(1.18);
+  }
+  100% {
+    transform: rotate(2deg) translateY(0) scale(1);
+    filter: brightness(1.08);
   }
 }
 

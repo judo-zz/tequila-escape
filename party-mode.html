@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Kaisei+Opti:wght@700&family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="party-mode.css?v=20260501-party-polish">
+  <link rel="stylesheet" href="party-mode.css?v=20260502-result-polish">
 </head>
 <body>
 <div id="app">
@@ -170,10 +170,14 @@
         <div class="cardset-choice">
           <label class="setup-label setup-label-sub">カード構成</label>
           <div class="rule-choice-row cardset-choice-row" role="group" aria-label="カード構成">
-            <button class="pvp-cardset-btn active" data-cardset="simple" aria-pressed="true">シンプル</button>
+            <button class="pvp-cardset-btn active" data-cardset="simple" aria-pressed="true">シンプル<span class="choice-badge">おすすめ</span></button>
             <button class="pvp-cardset-btn" data-cardset="normal" aria-pressed="false">ノーマル</button>
           </div>
           <p id="pvp-cardset-hint" class="setup-hint">手札なし。山札だけをめくる超シンプル版。</p>
+          <div id="pvp-cardset-guide" class="pvp-cardset-guide">
+            <strong id="pvp-cardset-guide-title">シンプルな流れ</strong>
+            <span id="pvp-cardset-guide-text">順番に山札をめくる。テキーラなら酔い+1。強制乾杯は全員が飲む。一番しらふで逃げ切ろう。</span>
+          </div>
         </div>
       </div>
 
@@ -326,6 +330,11 @@
       <img id="result-badge" class="result-badge" src="assets/generated/badge-winner.webp" alt="" aria-hidden="true">
       <div id="result-title" class="result-title"></div>
       <div id="result-party-summary" class="result-party-summary"></div>
+      <div id="result-share-card" class="result-share-card">
+        <div class="result-share-label">SHARE CARD</div>
+        <div id="result-catch" class="result-catch"></div>
+        <div id="result-scoreline" class="result-scoreline"></div>
+      </div>
       <div id="result-rankings" class="result-rankings"></div>
     </div>
     <div class="result-actions">
@@ -349,6 +358,6 @@
   <div id="toast-msg" class="toast"></div>
 
 </div>
-<script src="party-mode.js?v=20260501-party-polish" defer></script>
+<script src="party-mode.js?v=20260502-result-polish" defer></script>
 </body>
 </html>

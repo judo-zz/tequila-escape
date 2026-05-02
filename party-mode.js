@@ -252,6 +252,7 @@ function initState(playerName, cpuCount, maxCycles, humanCharacter, cpuCharacter
     forcedDrawPending: null,
     targetPendingFrom: null,
     hasDrawnThisTurn: false,
+    drawLocked: false,
     handRevealed: true,
     kanpaiPending: [],
     lastEvent: EVENT_COPY.waiting,
@@ -291,6 +292,7 @@ function initStatePvp(seats, maxCycles, gameType = 'standard', initialHp = DEFAU
     forcedDrawPending: null,
     targetPendingFrom: null,
     hasDrawnThisTurn: false,
+    drawLocked: false,
     handRevealed: false,
     kanpaiPending: [],
     eliminationCount: 0,
@@ -1532,6 +1534,7 @@ function renderEventCard() {
   card.className = `event-card event-${event.tone}`;
   const canDrawFromStage = canUseStageDraw();
   card.classList.toggle('is-drawable', canDrawFromStage);
+  card.classList.toggle('is-drawing', Boolean(state.drawLocked));
   card.setAttribute('aria-label', canDrawFromStage ? '山札を引く' : `${event.kicker} ${event.title}`);
   card.setAttribute('aria-disabled', canDrawFromStage ? 'false' : 'true');
   card.tabIndex = canDrawFromStage ? 0 : -1;
@@ -1542,8 +1545,14 @@ function renderEventCard() {
   $('event-card-kicker').textContent = event.kicker;
   $('event-card-title').textContent = event.title;
   $('event-card-copy').textContent = event.copy;
+  const action = $('event-card-action');
+  if (action) {
+    if (state.drawLocked) action.textContent = 'DRAWING...';
+    else if (canDrawFromStage) action.textContent = state.phase === 'FORCED_DRAW' ? 'DRAW NOW' : 'TAP TO DRAW';
+    else action.textContent = '';
+  }
   const serial = String(event.serial || 0);
-  if (card.dataset.eventSerial !== serial) {
+  if (!state.drawLocked && card.dataset.eventSerial !== serial) {
     card.dataset.eventSerial = serial;
     card.classList.remove('is-flipping');
     void card.offsetWidth;
@@ -1553,6 +1562,7 @@ function renderEventCard() {
 
 function canUseStageDraw() {
   if (!state || state.gameOverPending) return false;
+  if (state.drawLocked) return false;
   return state.phase === 'PLAYER_TURN' || (state.phase === 'FORCED_DRAW' && Boolean(state.forcedDrawPending));
 }
 
@@ -1654,7 +1664,7 @@ function renderActionBar() {
   bar.classList.toggle('is-forced', isForcedDraw);
   const isGameOver = state.gameOverPending;
   bar.classList.toggle('can-end', isPlayerTurn && state.hasDrawnThisTurn);
-  drawBtn.disabled = (!isPlayerTurn && !isForcedDraw) || isGameOver;
+  drawBtn.disabled = (!isPlayerTurn && !isForcedDraw) || isGameOver || state.drawLocked;
   endBtn.disabled  = !isPlayerTurn || !state.hasDrawnThisTurn;
   if (stageEndBtn) {
     const canEnd = isPlayerTurn && state.hasDrawnThisTurn;
@@ -1672,6 +1682,7 @@ function renderActionBar() {
   const drawLabel = $('draw-label-text');
   if (drawLabel) {
     if (isGameOver) drawLabel.textContent = 'ゲーム終了';
+    else if (state.drawLocked) drawLabel.textContent = 'めくっています…';
     else if (isForcedDraw) drawLabel.textContent = '引かされる……';
     else drawLabel.textContent = '山札を引く';
   }
@@ -1691,6 +1702,18 @@ function onPlayerCardClick(cardId) {
 }
 
 function onDrawClick() {
+  if (!canUseStageDraw()) return;
+  clearTimeout(onDrawClick._drawTid);
+  state.drawLocked = true;
+  renderAll();
+  onDrawClick._drawTid = setTimeout(() => {
+    if (!state) return;
+    state.drawLocked = false;
+    resolveDrawClick();
+  }, 360);
+}
+
+function resolveDrawClick() {
   if (state.phase === 'FORCED_DRAW' && state.forcedDrawPending) {
     const reason = state.forcedDrawPending.reason;
     state.forcedDrawPending = null;
@@ -1701,6 +1724,7 @@ function onDrawClick() {
       : state.players.find(p => p.isHuman);
     const c = drawFromDeck();
     resolveDrawCard(c, drawPlayer);
+    if (finishPendingDrawGame()) return;
     renderAll();
 
     if (reason === 'force') {
@@ -1732,8 +1756,16 @@ function onDrawClick() {
   const player = currentPlayer();
   const c = drawFromDeck();
   resolveDrawCard(c, player);
+  if (finishPendingDrawGame()) return;
   state.hasDrawnThisTurn = true;
   renderAll();
+}
+
+function finishPendingDrawGame() {
+  if (state.phase === 'RESULT') return true;
+  if (!state.gameOverPending) return false;
+  finishGame();
+  return true;
 }
 
 function onEndTurnClick() {
@@ -1742,18 +1774,55 @@ function onEndTurnClick() {
 }
 
 // ── Result screen ──
+function resultModeText() {
+  if (!state) return 'PARTY MODE';
+  if (state.gameMode === 'pvp') {
+    const rule = state.gameType === 'elimination' ? `脱落モード HP${state.initialHp || DEFAULT_ELIMINATION_HP}` : `通常モード ${state.tequilaCount || 6}杯`;
+    const set = state.cardSet === 'simple' ? 'シンプル' : 'ノーマル';
+    return `${state.players.length}人 / ${rule} / ${set}`;
+  }
+  return `${state.players.length}人 / VS CPU / ${state.maxCycles}周`;
+}
+
+function resultCatchText(sorted, human, humanRank) {
+  const isPvp = state.gameMode === 'pvp';
+  const isElimination = state.gameType === 'elimination';
+  if (isElimination) {
+    const survivors = sorted.filter(p => !p.eliminated);
+    if (!survivors.length) return '称号: 全員テキーラの海';
+    return `称号: 生還者 ${survivors[0].name}`;
+  }
+
+  const minDrunk = sorted[0].drunk;
+  const winners = sorted.filter(p => p.drunk === minDrunk);
+  if (winners.length > 1) return `称号: しらふ同盟 ${winners.map(p => p.name).join(' & ')}`;
+  if (!isPvp && human && winners[0].id === human.id) return '称号: しらふの王';
+  if (!isPvp && humanRank === sorted.length) return '称号: テキーラに愛された人';
+  return `称号: ${winners[0].name} が夜を制した`;
+}
+
+function playerResultTitle(player, rank, sorted) {
+  if (state.gameType === 'elimination') return player.eliminated ? '脱落' : '生存';
+  if (rank === 1) return 'しらふの王';
+  if (rank === sorted.length) return '一番飲んだ人';
+  return '生還';
+}
+
 function showResultScreen(sorted) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $('result-screen').classList.add('active');
 
   const titleEl  = $('result-title');
   const summaryEl = $('result-party-summary');
+  const catchEl = $('result-catch');
+  const scorelineEl = $('result-scoreline');
   const isPvp = state.gameMode === 'pvp';
   const isElimination = state.gameType === 'elimination';
   const human = isPvp ? null : state.players.find(p => p.isHuman);
   const humanRank = human ? sorted.findIndex(p => p.id === human.id) + 1 : 0;
 
   const badge = $('result-badge');
+  const catchText = resultCatchText(sorted, human, humanRank);
 
   if (isElimination) {
     const allEliminated = sorted.every(p => p.eliminated);
@@ -1797,6 +1866,14 @@ function showResultScreen(sorted) {
     }
   }
 
+  if (catchEl) catchEl.textContent = catchText;
+  if (scorelineEl) {
+    const score = isElimination
+      ? sorted.map(p => `${p.name}:${p.eliminated ? '脱落' : '生存'}(${p.drunk}杯)`).join(' / ')
+      : sorted.map(p => `${p.name}:${p.drunk}杯`).join(' / ');
+    scorelineEl.textContent = `${resultModeText()} / ${score}`;
+  }
+
   const rankings = $('result-rankings');
   rankings.innerHTML = '';
   const medals = ['gold', 'silver', 'bronze'];
@@ -1810,9 +1887,15 @@ function showResultScreen(sorted) {
     num.className = 'rank-num ' + (medals[i] || '');
     num.textContent = `${i + 1}`;
 
+    const nameWrap = document.createElement('div');
+    nameWrap.className = 'rank-info';
     const name = document.createElement('div');
     name.className = 'rank-name';
     name.textContent = p.name + (!isPvp && p.isHuman ? ' (YOU)' : '');
+    const title = document.createElement('div');
+    title.className = 'rank-title';
+    title.textContent = playerResultTitle(p, i + 1, sorted);
+    nameWrap.append(name, title);
 
     const right = document.createElement('div');
     right.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;gap:2px;';
@@ -1830,7 +1913,7 @@ function showResultScreen(sorted) {
       right.append(drunk, lbl);
     }
 
-    row.append(num, name, right);
+    row.append(num, nameWrap, right);
     rankings.appendChild(row);
   }
 
@@ -1838,14 +1921,17 @@ function showResultScreen(sorted) {
 }
 
 function buildPartyResultPostText(sorted, human, humanRank) {
+  const catchText = resultCatchText(sorted, human, humanRank);
+  const modeText = resultModeText();
   if (state.gameMode === 'pvp' && state.gameType === 'elimination') {
     const winner = sorted[0];
     const allEliminated = sorted.every(p => p.eliminated);
     const resultLine = allEliminated ? '全員脱落！' : `生存者: ${winner.name}`;
     const scoreLine = sorted.map(p => `${p.name}${p.eliminated ? '💀' : '❤️'}${p.drunk}`).join(' / ');
     return [
-      'テキーラから逃げろ！PARTY MODE（脱落モード）',
-      `${state.players.length}人 HP${state.initialHp || DEFAULT_ELIMINATION_HP}制`,
+      'テキーラから逃げろ！PARTY MODE',
+      modeText,
+      catchText,
       resultLine,
       scoreLine,
     ].join('\n');
@@ -1856,8 +1942,9 @@ function buildPartyResultPostText(sorted, human, humanRank) {
   if (state.gameMode === 'pvp') {
     const scoreLine = sorted.map(p => `${p.name}🥃${p.drunk}`).join(' / ');
     return [
-      'テキーラから逃げろ！PARTY MODE（ローカル対人）',
-      `${state.maxCycles}周 × ${state.players.length}人`,
+      'テキーラから逃げろ！PARTY MODE',
+      modeText,
+      catchText,
       `勝者: ${winLabel}`,
       `最終: ${scoreLine}`,
     ].join('\n');
@@ -1865,7 +1952,8 @@ function buildPartyResultPostText(sorted, human, humanRank) {
   const worst = sorted[sorted.length - 1];
   return [
     'テキーラから逃げろ！PARTY MODE',
-    `${state.maxCycles}周 × ${state.players.length}人`,
+    modeText,
+    catchText,
     `勝者: ${winLabel}`,
     human ? `あなた: ${humanRank}位 / 酔い${human.drunk}` : null,
     `最大被弾: ${worst.name} 酔い${worst.drunk}`,
@@ -1876,7 +1964,11 @@ function updatePartyXPostLink(sorted, human, humanRank) {
   const link = $('post-x-btn');
   if (!link) return;
   const text = buildPartyResultPostText(sorted, human, humanRank);
-  const params = new URLSearchParams({ text, hashtags: 'テキーラから逃げろ' });
+  const params = new URLSearchParams({
+    text,
+    hashtags: 'テキーラから逃げろ',
+    url: 'https://nagopine.net/tequila-escape/party-mode.html',
+  });
   link.href = `https://twitter.com/intent/tweet?${params.toString()}`;
 }
 
@@ -2196,14 +2288,27 @@ function updatePvpRuleUi() {
       ? '手札なし。山札だけをめくる超シンプル版。強制テキーラ乾杯は毎回2〜3枚。'
       : '8種類ぜんぶ入り。方向逆・スキップ・回避・倍プッシュまで入る読み合い重視。';
   }
+  const cardsetGuideTitle = $('pvp-cardset-guide-title');
+  const cardsetGuideText = $('pvp-cardset-guide-text');
+  if (cardsetGuideTitle && cardsetGuideText) {
+    if (pvpCardSet === 'simple') {
+      cardsetGuideTitle.textContent = 'シンプルな流れ';
+      cardsetGuideText.textContent = '順番に山札をめくる。テキーラなら酔い+1。強制乾杯は全員が飲む。カード説明なしで、酔っていてもすぐ遊べる。';
+    } else {
+      cardsetGuideTitle.textContent = 'ノーマルの流れ';
+      cardsetGuideText.textContent = '山札を引く前に手札を使える。押しつける、回避する、順番を変える。読み合いと煽り合いを楽しむ上級ルール。';
+    }
+  }
 }
 
 function clearTransientUI() {
   clearTimeout(showSfx._tid);
   clearTimeout(showCutin._tid);
   clearTimeout(showToast._tid);
+  clearTimeout(onDrawClick._drawTid);
   clearTimeout(onPassRevealClick._kanpaiSettleTid);
   clearTimeout(triggerBoardImpact._tid);
+  if (state) state.drawLocked = false;
   $('peek-overlay').classList.add('hidden');
   $('target-overlay').classList.add('hidden');
   $('pass-overlay')?.classList.add('hidden');
