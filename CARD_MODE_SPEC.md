@@ -41,9 +41,10 @@
 |---|---:|---|
 | `FLIP_MS` | 580 | カードフリップアニメーション時間 |
 | `REVEAL_HOLD_MS` | 1200 | フリップ後のカード表示保持時間 |
-| `TELL_HOLD_MS` | 180 | テルフェーズの最低表示時間 |
+| `TELL_HOLD_MS` | 560 | テルフェーズの最低表示時間 |
 | `COMMIT_MS` | 400 | コミット演出の表示時間 |
 | `REVEAL_PRE_FLIP_MS` | 600 | フリップ前の待機時間（基準値。危険時は動的に延長） |
+| `CARD_GUIDE_HOLD_MS` | 420 | 手札長押しでカード説明を出すまでの時間 |
 `enterReveal()` では `REVEAL_PRE_FLIP_MS` の代わりに動的遅延を使用する。プレイヤーまたはみるくの HP が 1 以下のとき最大 1100ms、2 以下のとき 850ms、ターン 8 以降は 750ms に延長される。
 
 ## 状態モデル
@@ -82,6 +83,8 @@
 
 コストは `resolveBattleTurn()` 冒頭で双方とも先に支払われる。その後、乾杯、チェイサー、カウンター効果を順に適用する。HP/ノリは `clamp()` により 0 から最大値に収まる。
 
+手札は通常タップで選択、長押しまたはコンテキストメニューでカード説明トーストを表示する。限界コール中は各カードのヒント表示が強化後の追加効果に差し替わる。
+
 ## 組み合わせ効果
 
 以下は上限/下限にかからない通常時の差分。`あなた` と `みるく` はそれぞれ HP/ノリ差分を表す。
@@ -111,6 +114,8 @@
 | 4-7 | 0.70 | 信頼度 中 |
 | 8-9 | 0.55 | 信頼度 低 |
 | 10 | 0.45 | 信頼度 博打 |
+
+表示上は「たまに嘘」「嘘あり」「疑って」「ほぼ罠」を付け、予告が確定情報ではないことを初見にも伝える。
 
 `TELL_OF` はカードから予告タイプへの対応:
 
@@ -173,6 +178,10 @@ INTRO
 
 `CARD_SELECT` から離れる際は `disableHand()` と `clearTell()` が実行される。
 
+5ターン目は `mid_show`（中間チェック）が必ず出る。フェイク成功報酬と見張り成功ダメージが上がり、中盤にも山場を作る。
+
+テンションが最大の時に限界コールを使うと、次に選んだ1枚だけ強化される。乾杯はみるくHP-1追加、フェイクは見張られなければノリ+1追加、見張るはフェイクを刺した時にみるくHP-1追撃、チェイサーはHP+1追加。空振りした場合はプレイヤーHP-1。
+
 ## ACT 表示
 
 | ターン | 表示 |
@@ -212,6 +221,7 @@ ACT バッジ（`#act-badge`）のみを表示する。旧 ACT バナー DOM / C
 `buildSummary()` が以下を集約し、`state.summary` に保存する。
 
 - 勝敗、エンディング種別、終了理由
+- 勝因/敗因/分岐点
 - 最終 HP/ノリ
 - 最多使用カード
 - 最低 HP / 最高ノリ
@@ -287,7 +297,7 @@ ACT バッジ（`#act-badge`）のみを表示する。旧 ACT バナー DOM / C
 | `fuman` | `assets/optimized/fuman.webp` | みるくのノリ高め、プレイヤーのノリ大幅消費など |
 | `deisui` | `assets/optimized/deisui.webp` | みるく低 HP 時の反応。将来の重酔い演出用にも保留 |
 
-`faceFromGauges()` はターン開始時の状態表情、`faceFromDeltas()` は結果反応表情を決める。カード組み合わせごとのコピーやトーンは `MATCH_EFFECTS`、SFX テキストは `SFX_LABELS` に定義されている。
+`faceFromGauges()` はターン開始時の状態表情、`faceFromDeltas()` は結果反応表情を決める。カード組み合わせごとのコピーやトーンは `MATCH_EFFECTS`、SFX テキストは `SFX_LABELS` に定義されている。手札上の「みるく」チップは表情・状態の読み筋を短文で出す。
 
 表情が変化した際（`setCharFace()` で `img.src` が変わった時）、以下の演出が同時に発生する:
 
@@ -310,6 +320,7 @@ JS が直接参照する主な ID/クラス:
 - `#top-btn`
 - `#hand`
 - `.card-slot[data-card="toast|fake|watch|chaser"]`
+- `#limit-btn`, `#limit-effect`
 - `#drunk-fill`, `#sus-fill`, `#tens-fill`, `#mood-fill`
 - `#drunk-value`, `#sus-value`, `#tens-value`, `#mood-value`
 - `#turn-display`, `#act-badge`, `#turn-history`, `#recent-history`
@@ -317,7 +328,7 @@ JS が直接参照する主な ID/クラス:
 - `#card-player`, `#card-milk`, `#vs-label`
 - `#sfx-text`
 - `#impact-layer`, `#commit-card`, `#reaction-burst`, `#match-cutin`, `#bust-cutin`
-- `#result-frame`, `#result-verdict`, `#result-title-big`, `#result-title-badge`, `#result-achievements`, `#result-card-img`, `#result-pov`
+- `#result-frame`, `#result-verdict`, `#result-title-big`, `#result-title-badge`, `#result-reason`, `#result-achievements`, `#result-card-img`, `#result-pov`
 - `.tab-btn[data-tab]`
 - `#retry-btn`, `#post-x-btn`
 - `#toast-msg`

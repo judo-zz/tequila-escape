@@ -4,9 +4,10 @@
 const MAX_TURNS           = 10;
 const FLIP_MS             = 580;
 const REVEAL_HOLD_MS      = 1200;
-const TELL_HOLD_MS        = 180;
+const TELL_HOLD_MS        = 560;
 const COMMIT_MS           = 400;
 const REVEAL_PRE_FLIP_MS  = 600;
+const CARD_GUIDE_HOLD_MS  = 420;
 const ACHIEVEMENT_STORAGE_KEY = 'tequilaEscape.cardMode.achievements.v2';
 const RULE_HELP_STORAGE_KEY   = 'tequilaEscape.cardMode.ruleHelp.v1';
 const LIFE_MAX            = 5;
@@ -21,10 +22,10 @@ const MILK_MOOD_MAX       = 3;
 
 // ── Card definitions ──
 const CARDS = {
-  toast:  { id:'toast',  icon:'🥂', label:'乾杯する',   hint:'HP-1/ノリ+1', milkLabel:'乾杯する' },
-  fake:   { id:'fake',   icon:'🎭', label:'飲んだフリ', hint:'ノリ1/守る',   milkLabel:'飲んだフリ' },
-  watch:  { id:'watch',  icon:'👁', label:'見張る',     hint:'ノリ2/見抜く', milkLabel:'見張る' },
-  chaser: { id:'chaser', icon:'💧', label:'チェイサー', hint:'ノリ3/HP+2',   milkLabel:'チェイサー' },
+  toast:  { id:'toast',  icon:'🥂', label:'乾杯する',   hint:'HP-1/ノリ+1', milkLabel:'乾杯する',   guide:'HPを1払ってノリを1作る。ノリ満タンでも飲むとHPだけ減る。' },
+  fake:   { id:'fake',   icon:'🎭', label:'飲んだフリ', hint:'ノリ1/守る',   milkLabel:'飲んだフリ', guide:'ノリ1でHPを守る。みるくが乾杯ならノリ+1、見張られると大ダメージ。' },
+  watch:  { id:'watch',  icon:'👁', label:'見張る',     hint:'ノリ2/見抜く', milkLabel:'見張る',     guide:'ノリ2で相手のフェイクを読む。刺さると相手HP大ダメージ、自分ノリ+1。' },
+  chaser: { id:'chaser', icon:'💧', label:'チェイサー', hint:'ノリ3/HP+2',   milkLabel:'チェイサー', guide:'ノリ3でHPを2回復。満タン時は使えない。終盤の保険。' },
 };
 const CARD_IDS = ['toast', 'fake', 'watch', 'chaser'];
 
@@ -119,7 +120,7 @@ const CARD_COMMIT_LABELS = {
 
 const MATCH_EFFECTS = {
   'toast-toast':   { tone:'toast',  kicker:'乾杯成立', title:'カンッ！', word:'CHEERS', copy:'夜が一段、熱くなる。' },
-  'toast-fake':    { tone:'toast',  kicker:'片側だけ本気', title:'飲み切った', copy:'HPを払って、次の一手のPを作る。' },
+  'toast-fake':    { tone:'toast',  kicker:'片側だけ本気', title:'飲み切った', copy:'HPを払って、次の一手のノリを作る。' },
   'toast-watch':   { tone:'sus',    kicker:'視線の中で', title:'見られながら乾杯', copy:'正面突破にも圧がある。' },
   'toast-chaser':  { tone:'cold',   kicker:'テンポ差', title:'空気が少し止まる', copy:'あなたのグラスだけが進んだ。' },
   'fake-toast':    { tone:'fake',   kicker:'潜伏成功', title:'逃げた！', word:'FAKE', copy:'飲んだ顔だけ置いて、場を抜ける。' },
@@ -143,6 +144,21 @@ const LIMIT_EFFECT = {
   word: 'LIMIT',
   copy: 'この一手で、夜の流れを裂く。',
 };
+const LIMIT_CARD_GUIDES = {
+  toast: '限界中: 乾杯でみるくHP-1追加',
+  fake: '限界中: 見張られなければノリ+1追加',
+  watch: '限界中: フェイクを刺すとHP-1追撃',
+  chaser: '限界中: チェイサー回復+1',
+};
+const MILK_READ_HINTS = {
+  normal: '通常: バランス型',
+  doubt: '疑い: 見張り注意',
+  warm: 'ご機嫌: 予告やや素直',
+  salt: '塩対応: 予告を疑って',
+  guard: '守り: チェイサー警戒',
+  pressure: '本気: 攻めと見張り注意',
+  last: 'ラスト: ほぼ罠',
+};
 
 // ── Tell system ──
 // TELL_OF maps milkCard → tell type ID
@@ -162,6 +178,7 @@ const FIELD_EVENTS = [
   { id:'water',     kicker:'場の空気', title:'水ありますよ',   copy:'チェイサー回復+1',       tone:'cool' },
   { id:'hot_table', kicker:'場の空気', title:'卓が熱い',       copy:'見張り成功の被弾+1',     tone:'hot' },
   { id:'quiet',     kicker:'場の空気', title:'静かな卓',       copy:'違う手でテンション+1',   tone:'quiet' },
+  { id:'mid_show',  kicker:'5TH',      title:'中間チェック',   copy:'フリと見張りが重い',     tone:'sharp' },
   { id:'last_order',kicker:'LAST',     title:'ラストオーダー', copy:'乾杯と見張りが重い',     tone:'last' },
 ];
 
@@ -206,10 +223,10 @@ function currentTellHonestRate() {
   return clamp(base + moodBonus + suspicionPenalty, 0.35, 0.9);
 }
 function tellTrustLabel(rate) {
-  if (rate >= 0.75) return '信頼度 高';
-  if (rate >= 0.65) return '信頼度 中';
-  if (rate >= 0.55) return '信頼度 低';
-  return '信頼度 博打';
+  if (rate >= 0.75) return '信頼度 高 / たまに嘘';
+  if (rate >= 0.65) return '信頼度 中 / 嘘あり';
+  if (rate >= 0.55) return '信頼度 低 / 疑って';
+  return '信頼度 博打 / ほぼ罠';
 }
 
 function deriveMilkMode() {
@@ -356,6 +373,9 @@ function addMilkMood(amount) {
 }
 
 function rollFieldEvent() {
+  if (state.turn === 5) {
+    return FIELD_EVENTS.find(e => e.id === 'mid_show') || null;
+  }
   if (state.turn < 8 && Math.random() < 0.45) return null;
   if (state.turn >= 8 && state.turn < MAX_TURNS && Math.random() < 0.25) return null;
   let candidates = state.turn >= 8
@@ -649,6 +669,7 @@ function refreshHandSlots() {
         isFullBlocked ? `${CARDS[id].label} HP満タン` :
         `${CARDS[id].label} コスト${cost}ノリ`
     );
+    slot.title = CARDS[id].guide;
     slot.classList.toggle('blocked-full', isFullBlocked);
 
     if (!canPlay) {
@@ -663,6 +684,7 @@ function refreshHandSlots() {
       slot.classList.toggle('last-one', cost > 0 && state.player.point === cost);
     }
   });
+  applyLimitPreviewToCards();
 }
 
 function updateHandSubtitle() {
@@ -670,7 +692,13 @@ function updateHandSubtitle() {
   if (!el) return;
   const playable = CARD_IDS.filter(id => actorCanPlay(state.player, id));
   const memory = state.cpuPattern.sameStreak >= 2 ? ' / 同じ手を覚えられてる' : '';
-  if (state.limitCallActive) {
+  if (state.turn === 1 && state.history.length === 0) {
+    el.textContent = 'HP0で負け / 10TはHP→ノリ判定';
+  } else if (state.field?.id === 'mid_show') {
+    el.textContent = `中間チェック / フリと見張りが重い${memory}`;
+  } else if (state.field?.id === 'last_order') {
+    el.textContent = 'ラストオーダー / 乾杯と見張りが重い';
+  } else if (state.limitCallActive) {
     el.textContent = '限界コール中 / この一手が強くなる';
   } else if (state.player.point <= 0 && playable.length === 1) {
     el.textContent = 'まず乾杯でノリを作る';
@@ -703,12 +731,20 @@ function renderFieldEvent() {
 
 function renderLimitButton() {
   const btn = $('limit-btn');
+  const effect = $('limit-effect');
   if (!btn) return;
   const canUse = state.fsm === 'CARD_SELECT' && (state.tension >= TENSION_MAX || state.limitCallActive);
   btn.hidden = !canUse;
   btn.disabled = state.limitCallActive;
   btn.classList.toggle('active', state.limitCallActive);
   btn.textContent = state.limitCallActive ? '限界コール中' : '限界コール';
+  if (effect) {
+    const activeCardText = state.limitCallActive
+      ? '強化中: カードごとの追加効果が乗る。空振りはHP-1'
+      : 'テンションMAXで次の1枚を強化。空振りはHP-1';
+    effect.textContent = activeCardText;
+    effect.hidden = !canUse;
+  }
 }
 
 function onLimitCall() {
@@ -720,9 +756,10 @@ function onLimitCall() {
   }
   state.tension = 0;
   state.limitCallActive = true;
-  showToast('限界コール！この一手が強くなる');
+  showToast('限界コール！次の1枚を強化。空振りはHP-1');
   playStylishCutin(LIMIT_EFFECT, 'limit');
   updateHUD();
+  refreshHandSlots();
   renderLimitButton();
   updateHandSubtitle();
 }
@@ -755,6 +792,60 @@ function onCardTap(cardId) {
   }
 
   setState('COMMIT');
+}
+
+function applyLimitPreviewToCards() {
+  CARD_IDS.forEach(id => {
+    const slot = document.querySelector(`.card-slot[data-card="${id}"]`);
+    if (!slot) return;
+    const hint = slot.querySelector('.card-hint');
+    if (hint && state.limitCallActive) {
+      hint.textContent = LIMIT_CARD_GUIDES[id].replace('限界中: ', '');
+    }
+    slot.classList.toggle('limit-boosted', state.limitCallActive);
+  });
+}
+
+function showCardGuide(cardId) {
+  const card = CARDS[cardId];
+  if (!card) return;
+  showToast(`${card.label}: ${card.guide}`);
+}
+
+function bindCardGuide(slot, cardId) {
+  let holdTimer = 0;
+  let guided = false;
+  const clearHold = () => {
+    window.clearTimeout(holdTimer);
+    holdTimer = 0;
+  };
+  slot.addEventListener('pointerdown', () => {
+    guided = false;
+    clearHold();
+    holdTimer = window.setTimeout(() => {
+      guided = true;
+      showCardGuide(cardId);
+    }, CARD_GUIDE_HOLD_MS);
+  });
+  slot.addEventListener('pointerup', clearHold);
+  slot.addEventListener('pointerleave', () => {
+    clearHold();
+    guided = false;
+  });
+  slot.addEventListener('pointercancel', () => {
+    clearHold();
+    guided = false;
+  });
+  slot.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    showCardGuide(cardId);
+  });
+  slot.addEventListener('click', e => {
+    if (!guided) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    guided = false;
+  }, true);
 }
 
 function enterCommit() {
@@ -939,7 +1030,7 @@ function resolveBattleTurn(playerCard, milkCard) {
   const fieldId = state.field?.id;
   const toastDamage = 1 + (fieldId === 'last_order' ? 1 : 0);
   const chaserHeal = CHASER_HEAL + (fieldId === 'water' ? 1 : 0);
-  const watchDamage = 2 + (fieldId === 'hot_table' || fieldId === 'last_order' ? 1 : 0);
+  const watchDamage = 2 + (fieldId === 'hot_table' || fieldId === 'last_order' || fieldId === 'mid_show' ? 1 : 0);
   const fakeCaughtExtraDamage = fieldId === 'manager' ? 1 : 0;
   const caughtDamage = watchDamage + fakeCaughtExtraDamage;
 
@@ -992,12 +1083,12 @@ function resolveBattleTurn(playerCard, milkCard) {
 
   // Fake vs toast: stayed sober while milk drank → point +1 (offset cost, reward for correct read)
   if (playerCard === 'fake' && milkCard === 'toast') {
-    const fakeReward = 1 + (fieldId === 'pressure' ? 1 : 0);
+    const fakeReward = 1 + (fieldId === 'pressure' || fieldId === 'mid_show' ? 1 : 0);
     addPoint(state.player, fakeReward);
     notes.push(`場の隙を突いた！ノリ+${fakeReward}`);
   }
   if (milkCard === 'fake' && playerCard === 'toast') {
-    const fakeReward = 1 + (fieldId === 'pressure' ? 1 : 0);
+    const fakeReward = 1 + (fieldId === 'pressure' || fieldId === 'mid_show' ? 1 : 0);
     addPoint(state.milk, fakeReward);
     notes.push(`みるくが場の隙を突いた。みるくノリ+${fakeReward}`);
   }
@@ -1016,7 +1107,8 @@ function resolveBattleTurn(playerCard, milkCard) {
       addLife(state.player, 1);
       notes.push('限界コールで踏みとどまった！HP+1');
     } else {
-      notes.push('限界コールは空振りした');
+      addLife(state.player, -1);
+      notes.push('限界コール空振り……あなたHP-1');
     }
     state.limitCallActive = false;
   }
@@ -1084,6 +1176,7 @@ function enterResolve() {
   showSfx(spotlightNote || outcome.notes[0] || SFX_LABELS[sfxKey] || '');
 
   updateHUD();
+  showResourceDeltaPops(outcome);
 
   // みるくの表情をターン結果に反応させる
   const reactionFace = faceFromDeltas(outcome.deltas, state.playerCard, state.milkCard, outcome);
@@ -1410,7 +1503,7 @@ function saveUnlockedAchievements(ids) {
 }
 
 function buildSummaryTexts({ ending, isWin }) {
-  const decisive = state.history[state.history.length - 1];
+  const decisive = findDecisiveTurn();
 
   // Top card
   let topCard = { id: 'toast', count: 0 };
@@ -1438,7 +1531,39 @@ function buildSummaryTexts({ ending, isWin }) {
   const monologue = buildPlayerMonologue({ ending, topCard });
   const cast = buildMilkLine({ ending, topCard, decisive });
 
-  return { objective, monologue, cast, topCard };
+  return { objective, monologue, cast, topCard, decisive };
+}
+
+function findDecisiveTurn() {
+  if (!state.history.length) return null;
+  return state.history.reduce((best, h) => {
+    const o = h.outcome || {};
+    const score =
+      Math.abs(o.playerLifeDelta || 0) * 4 +
+      Math.abs(o.milkLifeDelta || 0) * 4 +
+      Math.abs(o.playerPointDelta || 0) +
+      Math.abs(o.milkPointDelta || 0) +
+      (o.playerCounter || o.milkCounter ? 8 : 0) +
+      (h.field === 'last_order' || h.field === 'mid_show' ? 2 : 0);
+    return !best || score >= best.score ? { ...h, score } : best;
+  }, null);
+}
+
+function buildDecisionReason(summary) {
+  const d = summary.decisive;
+  const prefix = summary.winner === 'player'
+    ? '勝因'
+    : summary.winner === 'milk'
+      ? '敗因'
+      : '分岐点';
+  if (!d) return `${prefix}: 最後まで決定打なし`;
+  const key = `${d.p}-${d.m}`;
+  const note = d.outcome?.notes?.find(n => /成功|大バレ|空振り|ラスト|中間|限界|HP-|ノリ/.test(n))
+    || SFX_LABELS[key]
+    || `${CARDS[d.p].label} vs ${CARDS[d.m].milkLabel}`;
+  const field = fieldEventById(d.field);
+  const fieldText = field ? ` / ${field.title}` : '';
+  return `${prefix}: T${d.turn} ${note}${fieldText}`;
 }
 
 function resultSeed(salt = 0) {
@@ -1756,10 +1881,12 @@ function buildSummary() {
     winner: state.winner,
     topCard: texts.topCard,
     peak: { ...state.peak },
-    decisive: state.history[state.history.length - 1] || null,
+    decisive: texts.decisive || state.history[state.history.length - 1] || null,
     turn: state.turn,
     texts: { record: texts.objective, monologue: texts.monologue, cast: texts.cast },
   };
+  state.summary.reason = buildDecisionReason(state.summary);
+  state.summary.texts.record.splice(1, 0, state.summary.reason);
 }
 
 // ── Result screen ──
@@ -1823,6 +1950,7 @@ function enterResult() {
   $('result-verdict').textContent   = `— ${VERDICT_LABELS[s.ending]} —`;
   $('result-title-big').textContent = s.title;
   $('result-title-badge').textContent = `称号：${s.resultTitle.name}`;
+  $('result-reason').textContent = s.reason || '';
 
   const achievementWrap = $('result-achievements');
   if (achievementWrap) {
@@ -1943,6 +2071,7 @@ function buildResultPostText() {
     `テキーラから逃げろ！CARD MODE`,
     `「${s.resultTitle.name}」/ ${VERDICT_LABELS[s.ending]}`,
     `${s.turn}ターン耐え抜いた！`,
+    s.reason,
     resultLine,
     `あなた HP${s.player.life} / ノリ${s.player.point}　みるく HP${s.milk.life} / ノリ${s.milk.point}`,
     `最多カード: ${top.icon} ${top.label}×${s.topCard.count}`,
@@ -1989,10 +2118,10 @@ function updateMindStrip() {
     tension.dataset.level = state.tension >= TENSION_MAX ? 'max' : state.tension >= 3 ? 'mid' : 'low';
   }
   if (milkMode) {
-    const label = state.turn >= 8 && mode !== 'last'
-      ? `ラスト/${MILK_MODE_LABELS[mode]}`
-      : (MILK_MODE_LABELS[mode] || '通常');
-    milkMode.textContent = `みるく ${label}`;
+    const label = MILK_READ_HINTS[visualMode] || MILK_READ_HINTS.normal;
+    const suffix = state.turn >= 8 && visualMode !== mode ? ` / ${MILK_MODE_LABELS[mode]}` : '';
+    milkMode.textContent = `みるく ${label}${suffix}`;
+    milkMode.title = label;
     milkMode.dataset.mode = visualMode;
   }
   const app = $('app');
@@ -2048,14 +2177,22 @@ function updateRecentHistory() {
     const row = document.createElement('div');
     row.className = 'rh-row';
     const pDelta = h.outcome?.playerLifeDelta ?? 0;
-    const cls = pDelta <= -2 ? 'rh-bust' : pDelta < 0 ? 'rh-bad' : pDelta > 0 ? 'rh-good' : 'rh-neutral';
-    const delta = pDelta !== 0 ? `HP${pDelta > 0 ? '+' : ''}${pDelta}` : '—';
+    const mDelta = h.outcome?.milkLifeDelta ?? 0;
+    const swing = pDelta - mDelta;
+    const cls = pDelta <= -2 ? 'rh-bust' : mDelta <= -2 ? 'rh-good' : pDelta < 0 ? 'rh-bad' : 'rh-neutral';
+    const delta = `YOU${formatSigned(pDelta)} / MILK${formatSigned(mDelta)}`;
+    const swingText = swing > 0 ? '優勢' : swing < 0 ? '苦しい' : '五分';
     row.innerHTML =
       `<span class="rh-turn">T${h.turn}</span>` +
       `<span class="rh-cards">${CARDS[h.p].icon}${CARDS[h.m].icon}</span>` +
-      `<span class="rh-delta ${cls}">${delta}</span>`;
+      `<span class="rh-delta ${cls}">${delta}</span>` +
+      `<span class="rh-swing">${swingText}</span>`;
     el.appendChild(row);
   });
+}
+
+function formatSigned(value) {
+  return value > 0 ? `+${value}` : String(value);
 }
 
 function setGauge(key, val, max = 100) {
@@ -2076,6 +2213,26 @@ function setGauge(key, val, max = 100) {
       );
     }
   }
+}
+
+function showResourceDeltaPops(outcome) {
+  const deltas = [
+    ['drunk-value', outcome.playerLifeDelta, 'HP'],
+    ['sus-value', outcome.playerPointDelta, POINT_LABEL],
+    ['tens-value', outcome.milkLifeDelta, 'HP'],
+    ['mood-value', outcome.milkPointDelta, POINT_LABEL],
+  ];
+  deltas.forEach(([id, value, label], index) => {
+    if (!value) return;
+    const target = $(id);
+    if (!target) return;
+    const pop = document.createElement('span');
+    pop.className = `delta-pop ${value > 0 ? 'delta-plus' : 'delta-minus'}`;
+    pop.textContent = `${label}${formatSigned(value)}`;
+    pop.style.setProperty('--delta-delay', `${index * 45}ms`);
+    target.closest('.hud-stat')?.appendChild(pop);
+    setTimeout(() => pop.remove(), 1050 + index * 45);
+  });
 }
 
 function updateActBadge() {
@@ -2385,7 +2542,10 @@ function init() {
   // Card slot tap handlers
   CARD_IDS.forEach(id => {
     const slot = document.querySelector(`.card-slot[data-card="${id}"]`);
-    if (slot) slot.addEventListener('click', () => onCardTap(id));
+    if (slot) {
+      bindCardGuide(slot, id);
+      slot.addEventListener('click', () => onCardTap(id));
+    }
   });
   $('limit-btn')?.addEventListener('click', onLimitCall);
 

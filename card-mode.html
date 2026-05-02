@@ -135,9 +135,8 @@
         <li><strong>フェイク</strong><span>ノリ1で飲まずに守る</span></li>
         <li><strong>見張る</strong><span>ノリ2で相手のフェイクを刺す</span></li>
         <li><strong>チェイサー</strong><span>ノリ3でHPを2回復</span></li>
-        <li><strong>場の空気</strong><span>毎ターン効果が変わる</span></li>
       </ul>
-      <p class="rule-help-note">疑惑を溜めすぎず、テンションを切るタイミングを読む。</p>
+      <p class="rule-help-note">HP0で負け。10ターン後はHP、同点ならノリで判定。みるくの表情と予告を読んで1枚選ぶ。</p>
       <button id="rule-help-start" class="rule-help-start" type="button">わかった、始める</button>
     </div>
   </div>
@@ -306,6 +305,7 @@
         </div>
         <button id="limit-btn" class="limit-btn" type="button" hidden>限界コール</button>
       </div>
+      <div id="limit-effect" class="limit-effect" hidden></div>
 
       <div class="hand-grid">
         <button class="card-slot" data-card="toast" aria-label="乾杯する コスト0" disabled>
@@ -385,6 +385,7 @@
           <div class="result-kicker">対戦結果</div>
           <div id="result-title-big" class="result-title-big"></div>
           <div id="result-title-badge" class="result-title-badge"></div>
+          <div id="result-reason" class="result-reason"></div>
         </div>
         <div id="result-card-img" class="result-card-img-wrap" aria-hidden="true"></div>
       </div>
